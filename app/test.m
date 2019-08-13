@@ -18,14 +18,13 @@
 % (1) How to run a general test function for a simple objective funtion to
 % demonstrate the simple normalization and damping Newton's method works?
 % --> how to initialize for a general function? (Yiwen)
-% (2) Separate u, v, d in test_func() and test_first_derivative()
 % (3) Split the update matrix part and update diffusion coefficient part
 % in cal_sub_mat(), Cal_J, and hessian_sub_mat().
-% (4) Why is the MATLAB direct solver super slow on my computer?
-% (5) **** test on Mem and H3K9 biosensor results.
+% (5) **** test on H3K9 biosensor results.
 % (6) mtool/spmatrixplot()
 % (7) Making the choice of solver an option
 % (8) let v0= -A^(-1)(u0-u2)
+% (9) Test case 7: not convergent yet. 
 
 %
 % Results
@@ -56,8 +55,12 @@
 % converge, since the damping consant was selected assuming normalization. 
 % (19) Normalize u by (u2-u1)
 % (20) Improve the User interface of test.m 
-% (21) 8/13/2019 Switched from test_func and test_first_derivatives to
+% (21) Compared the speed of different solvers (direct, iterative, or preconditioned) in MATLAB. 
+% 8/13/2019 and after
+% (22) Switched from test_func and test_first_derivatives to
 % objective functions(). 
+% (23) The Mem17 case seems to be working. 
+% 
 
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function test(varargin)
@@ -129,8 +132,9 @@ switch test_case
     data.u2 = data.u(:, 2);
     data.p = data.p_image;
     data.dt = data.dt * 60; % Convert min to sec
-    data.p = scale_by_magnification(data.p, 98); % requires fluocell
-    utility_fh.print_parameter('magnification', 98);
+    mag = 98;
+    data.p = scale_by_magnification(data.p, mag); % requires fluocell
+    utility_fh.print_parameter('magnification', mag);
   case 6
     data_file = strcat(pa, 'WTH3K9_4.mat');
     data = load(data_file);
@@ -139,7 +143,9 @@ switch test_case
     data.u2 = data.u(:, 5);
     data.p = data.p_image;
     data.dt = data.dt * 60;
-    data.p = data.p * 1/6.4;
+    mag = 99; 
+    data.p = scale_by_magnification(data.p, mag); % requires fluocell
+    utility_fh.print_parameter('magnification', mag);
     % Use the computer simulation program to mark regions 1 and 2
     data.tri(4, data.tri(4, :) == 1) = 2;
     data.tri(4, data.tri(4, :) == 3) = 2;
@@ -211,7 +217,6 @@ num_para = data.num_para;
 % set the initial guess vector (u0, v0, d0)
 u_len = num_node * 2 + num_para;
 d0 = init_d * ones(num_para, 1);
-% d0 = [5.27523;43.2818;5.0432]; 
 data.min_d = min_d*ones(num_para, 1); 
 
 data.u0 = zeros(u_len, 1);
@@ -238,7 +243,7 @@ for outer_iter = 1 : max_outer_step
     break;
   end
   switch update_option
-      case 1 %d only
+      case 1 %Update d only
           % In the outer iteration, only update gamma and d, but not u and v. 
           data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
       case 2 % Update u, v and d
@@ -247,7 +252,7 @@ for outer_iter = 1 : max_outer_step
           data.u_old = data.u_new{outer_iter}; 
   end
   if data.gamma_d>1e-5
-      data.gamma_d = max(data.gamma_d*0.01);
+      data.gamma_d = max(data.gamma_d*0.01, 1.0e-5);
       if enable_normalize
           data.gamma_d = data.gamma_d*xy_scale;
       end
