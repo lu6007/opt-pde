@@ -76,59 +76,55 @@ return
 
 function [data] = f7(data, func_flag)
   x = data.x;
-  num_node = size(data.p, 1);
-  p = data.p;
-  tri = data.tri;
+  num_node = data.num_nodes;
+%   p = data.p;
+%   tri = data.tri;
 
   u = x(1 : num_node);
   v = x(num_node+1 : 2*num_node);
   d = x(2*num_node+1:end);
 
   if func_flag == 0
-    % This is the Lagrangian
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % data.u_tmp
-    % data.objective_tmp
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    objective_tmp = (u - data.u2)' * data.M * (u - data.u2) + ...
-                    u' * data.A * v - data.u1' * data.M * v / data.dt;    
-                % Kathy: 7/12/2018 check the last negative sign at the top.
-
+    gamma_d = data.gamma_d; 
+    obj = (u - data.u2)' * data.M * (u - data.u2) + ...
+        u' * data.A * v + data.u1' * data.M * v / data.dt;    
     tmp_obj = 0;
     for iter = 1 : data.num_para
       tmp_M_sub = data.M_sub{iter};
-      d0 = data.d0(iter);
-      delta_d = d(iter)-d0;
-      tmp_obj = tmp_obj + data.gamma_d * (delta_d^2) * sum(tmp_M_sub(:)) /(d0^2);
+      dd0 = data.d0(iter);
+      ddd = d(iter)-dd0;
+      if abs(dd0) > eps
+        tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:)) /(dd0^2);
+      else
+        tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:));
+        fprintf('\n Function compute_objective(): abs(dd)<=eps, do not normalize. \n');
+      end
+      clear tmp_M_sub; 
     end
-    objective_tmp = objective_tmp + tmp_obj;
-    
-    data.y = objective_tmp;
+    y = obj + tmp_obj;
   elseif func_flag == 1
     % assemble A and M
+    data.assemble = 1; 
     if ~isfield(data, 'assemble') || data.assemble
       data = cal_sub_mat(data, d);
-
-      [A, M] = assemble_matrix(p', tri', 'diff_coef', data.diff_coef');
-%       [A, M] = assemble_matrix(p', tri');
+      [A, M] = assemble_matrix(data.p, data.tri, 'diff_coef', data.diff_coef); 
       A = A + M / data.dt;
       data.M = M;
-      data.A = A;
+      data.A = A;   
     end
 
     [Ju, Jv, Jd] = cal_J(data, d, u, v);
     y = [Ju; Jv; Jd];
-    data.y = y;
   elseif func_flag == 2
-    %%% Kathy 07/11
-    % data = hessian_sub_mat(data, d, u, v);
+    % Call objective_function first to assemble A_sub, M_sub, A and M
+    % Update Cu, Cv, and G
     data = hessian_sub_mat(data, u, v);
-    %%%
     
     Cu = data.Cu;
     Cv = data.Cv;
     G = data.G;
     if max(G(:)) == Inf
+      fprintf('\nWarning --- objective_function(): max(G(:)) == Inf\n\n');
       pause
     end
     A = data.A;
@@ -138,10 +134,13 @@ function [data] = f7(data, func_flag)
          A,   fillin, Cv;
          Cu', Cv',    G ];
 
-    data.y = H;
+    y = H;
+    clear Cu Cv G H; 
   end
+  data.y = y;
 return
 
+% Not sure about this purpose, need to be tested. 
 function [data] = f8(data, func_flag)
   x = data.x;
   num_node = size(data.p, 1);

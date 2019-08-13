@@ -187,9 +187,11 @@ end
 data.xy_scale = xy_scale;
 
 % ----- define the jacobian function and hessian -----
-fd = test_first_derivative; % Hessien
-f = test_func; % Jacobian
+% fd = test_first_derivative; % Hessien
+% f = test_func; % Jacobian
+fh = objective_function; 
 fun_idx = 7;
+objective_fun = fh{fun_idx};
 % ----- end -----
 
 % # of different diffision coefficients
@@ -219,7 +221,7 @@ data.u_old = data.u0;
 % 
 for outer_iter = 1 : max_outer_step
   data.outer_iter = outer_iter;
-  data = my_newton(data, f{fun_idx}, fd{fun_idx});
+  data = my_newton(data, objective_fun);
   d0 = data.u_old(2*num_node+1:end);
   d_hist = data.d_hist{outer_iter};
   tmp = (d_hist(:, end)-d0)./d0;

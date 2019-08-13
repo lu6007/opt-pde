@@ -6,7 +6,10 @@
 % max_damp_iter: maximum number of damping steps
 % data should provide meshing information, and initial guess
 
-function data = my_newton(data, jacobian_fun, hessian_fun)
+function data = my_newton(data, objective_fun)
+
+%   % function handles
+%   fh = objective_fun; 
 
   % data
   max_newton_iter = data.max_newton_iter;
@@ -40,17 +43,15 @@ function data = my_newton(data, jacobian_fun, hessian_fun)
   d_hist(:, 1) = data.d0;
   for i = 1: max_newton_iter
     data.x = u_old;
-    data = jacobian_fun(data);
+    data = objective_fun(data, 1);
     jacobian_old = data.y;
     if i == 1
         J(i) = norm(jacobian_old);
-        uu = u_old(1:num_node);
-        vv = u_old(num_node+1:2*num_node); 
-        dd = u_old(2*num_node+1: end); 
-        objective(i) = compute_objective(data, dd, uu, vv);
-        clear uu vv dd
+        data = objective_fun(data, 0);
+        objective(i) = data.y;
     end
-    data = hessian_fun(data);
+    % data = hessian_fun(data);
+    data = objective_fun(data, 2); 
     hessian_old = data.y;
 
     if J(i) < tol
@@ -75,7 +76,7 @@ function data = my_newton(data, jacobian_fun, hessian_fun)
         ss = 1; 
         u_new = u_old + ss * du;
         data.x = u_new;
-        data = jacobian_fun(data);
+        data = objective_fun(data, 1);
         jacobian_new = data.y; 
     else
         % Damping
@@ -88,7 +89,8 @@ function data = my_newton(data, jacobian_fun, hessian_fun)
             %%%%%%%%%%%%%%%%%%%%%
             u_new = u_old + ss * du;
             data.x = u_new;
-            data = jacobian_fun(data);
+            % data = jacobian_fun(data);
+            data = objective_fun(data, 1);
             jacobian_new = data.y;
             %%%%%%%%%%%%%%%%%%%%%
             if (1 - norm(jacobian_new)/J(i))/ss < delta
@@ -111,12 +113,13 @@ function data = my_newton(data, jacobian_fun, hessian_fun)
     % here. 
     u_new(2*num_node+1: end) = max(u_new(2*num_node+1: end),min_d);
     
-    % calculate objective function
-    % Kathy: this is the Lagrangian
+    % calculate objective function and Jacobian
     uu = u_new(1:num_node);
-    vv = u_new(num_node+1:2*num_node); 
+    % vv = u_new(num_node+1:2*num_node); 
     dd = u_new(2*num_node+1: end); 
-    objective(i+1) = compute_objective(data, dd, uu, vv);
+    data.x = u_new;
+    data = objective_fun(data, 0);
+    objective(i+1) = data.y;
     J(i+1) = norm(jacobian_new);
 
     d_hist(:, i+1) = dd;
@@ -139,7 +142,8 @@ function data = my_newton(data, jacobian_fun, hessian_fun)
       clear u_old jacobian_old;
       u_old = u_new;
       data.x = u_old;
-      data = hessian_fun(data);
+      % data = hessian_fun(data);
+      data = objective_fun(data, 2); % Hessian
     end % if norm(jacobian_new) < 1e-06 && max(abs(tmp)) < 0.01
   end % for i = 1 : max_newton_iter
 
@@ -157,25 +161,5 @@ function data = my_newton(data, jacobian_fun, hessian_fun)
   fprintf('Number of newton steps: %d \n', i);
   fprintf('######################## \n\n');
   
-return
-
-function obj = compute_objective(data, d, u, v)
-    gamma_d = data.gamma_d; 
-    obj = (u - data.u2)' * data.M * (u - data.u2) + ...
-        u' * data.A * v + data.u1' * data.M * v / data.dt;    
-    tmp_obj = 0;
-    for iter = 1 : data.num_para
-      tmp_M_sub = data.M_sub{iter};
-      dd0 = data.d0(iter);
-      ddd = d(iter)-dd0;
-      if abs(dd0) > eps
-        tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:)) /(dd0^2);
-      else
-        tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:));
-        fprintf('\n Function compute_objective(): abs(dd)<=eps, do not normalize. \n');
-      end
-      clear tmp_M_sub; 
-    end
-    obj = obj + tmp_obj;
 return
 
