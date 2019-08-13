@@ -1,3 +1,12 @@
+% function fh = objective_function
+%   fh = localfunctions;
+% return
+% Objective functions,
+% func_flab = 0 --- objective
+% func_flag = 1 --- First derivative, or Jacobian
+% func_flag = 2 --- Second derivative, or Hessian
+
+% Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function fh = objective_function
   fh = localfunctions;
 return
@@ -77,9 +86,6 @@ return
 function [data] = f7(data, func_flag)
   x = data.x;
   num_node = data.num_nodes;
-%   p = data.p;
-%   tri = data.tri;
-
   u = x(1 : num_node);
   v = x(num_node+1 : 2*num_node);
   d = x(2*num_node+1:end);

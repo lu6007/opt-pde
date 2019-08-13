@@ -58,6 +58,7 @@
 % (20) Improve the User interface of test.m 
 % 
 
+% Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function test(varargin)
 para.name = {'test_case', 'init_u_tag', 'enable_normalize', ...
     'enable_damp_newton', 'gamma', 'init_d'};

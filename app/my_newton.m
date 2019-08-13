@@ -6,6 +6,7 @@
 % max_damp_iter: maximum number of damping steps
 % data should provide meshing information, and initial guess
 
+% Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function data = my_newton(data, objective_fun)
 
 %   % function handles
@@ -142,7 +143,6 @@ function data = my_newton(data, objective_fun)
       clear u_old jacobian_old;
       u_old = u_new;
       data.x = u_old;
-      % data = hessian_fun(data);
       data = objective_fun(data, 2); % Hessian
     end % if norm(jacobian_new) < 1e-06 && max(abs(tmp)) < 0.01
   end % for i = 1 : max_newton_iter
