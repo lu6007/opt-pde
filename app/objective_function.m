@@ -2,7 +2,7 @@
 %   fh = localfunctions;
 % return
 % Objective functions,
-% func_flab = 0 --- objective
+% func_flab = 0 --- The objective function
 % func_flag = 1 --- First derivative, or Jacobian
 % func_flag = 2 --- Second derivative, or Hessian
 
@@ -146,7 +146,7 @@ function [data] = f7(data, func_flag)
   data.y = y;
 return
 
-% Not sure about this purpose, need to be tested. 
+% Not sure about this purpose, need to be tested. 8/12/2019 Kathy
 function [data] = f8(data, func_flag)
   x = data.x;
   num_node = size(data.p, 1);

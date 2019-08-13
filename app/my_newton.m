@@ -90,7 +90,6 @@ function data = my_newton(data, objective_fun)
             %%%%%%%%%%%%%%%%%%%%%
             u_new = u_old + ss * du;
             data.x = u_new;
-            % data = jacobian_fun(data);
             data = objective_fun(data, 1);
             jacobian_new = data.y;
             %%%%%%%%%%%%%%%%%%%%%
@@ -130,7 +129,7 @@ function data = my_newton(data, objective_fun)
 
   % From left to right: Objective Function, Norm of Jacobian, Damping Parameter
   % Residual, Diffusion Coefficients
-    fprintf('%8.3f \t %10.5f \t %5.2e \t %5.2e \t %s \n', ...
+    fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t %s \n', ...
         objective(i), J(i), s_hist(i), norm_du(i), num2str(u_new(2*num_node+1:end)'));
 
     % convergence test

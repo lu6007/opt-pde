@@ -56,7 +56,8 @@
 % converge, since the damping consant was selected assuming normalization. 
 % (19) Normalize u by (u2-u1)
 % (20) Improve the User interface of test.m 
-% 
+% (21) 8/13/2019 Switched from test_func and test_first_derivatives to
+% objective functions(). 
 
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function test(varargin)
@@ -71,6 +72,13 @@ para.value = {test_case, init_u_tag, enable_normalize, ...
     enable_damp_newton, gamma, init_d};
 para.format = {'%d', '%d', '%d', '%d', '%5.2e', '%6.2f'}; 
 print_parameter(para);
+
+utility_fh = utility(); % utility_function handle
+update_option = 2; % In the outer iterations, update d only, works better for accurate data
+% for mem17 use 2
+% update_option = 2; % Update all three variables, u, v and d, works better
+% for noisy data. 
+utility_fh.print_parameter('update_option', update_option);
 
 % test_case = 1; % 1 -- spot diffusion
 % init_u_tag = 1; % 1 -- u0=u1; 2 -- u0 = u2
@@ -122,7 +130,7 @@ switch test_case
     data.p = data.p_image;
     data.dt = data.dt * 60; % Convert min to sec
     data.p = scale_by_magnification(data.p, 98); % requires fluocell
-    fprintf('\n--- test case 5: scale_by_magnification of 98. --- \n\n');
+    utility_fh.print_parameter('magnification', 98);
   case 6
     data_file = strcat(pa, 'WTH3K9_4.mat');
     data = load(data_file);
@@ -229,16 +237,21 @@ for outer_iter = 1 : max_outer_step
   if max(abs(tmp)) < 0.01 && data.gamma_d <= 1e-5 
     break;
   end
-  % In the outer iteration, only update gamma and d, but not u and v. 
-  % Updating u and v may converge slower. 
-  data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
-  % data.u_old = data.u_new{outer_iter}; 
+  switch update_option
+      case 1 %d only
+          % In the outer iteration, only update gamma and d, but not u and v. 
+          data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
+      case 2 % Update u, v and d
+          % Updating u and v may converge slower, but with stable convergence.
+          % data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
+          data.u_old = data.u_new{outer_iter}; 
+  end
   if data.gamma_d>1e-5
-      data.gamma_d = data.gamma_d*0.01;
+      data.gamma_d = max(data.gamma_d*0.01);
       if enable_normalize
           data.gamma_d = data.gamma_d*xy_scale;
       end
-      fprintf('Function test(): set data.gamma_d = %5.2e\n', data.gamma_d);
+      utility_fh.print_parameter('data.gamma_d', data.gamma_d);
   end
 end
 
