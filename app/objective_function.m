@@ -85,7 +85,7 @@ return
 
 function [data] = f7(data, func_flag)
   x = data.x;
-  num_node = data.num_nodes;
+  num_node = data.num_node;
   u = x(1 : num_node);
   v = x(num_node+1 : 2*num_node);
   d = x(2*num_node+1:end);
@@ -95,6 +95,9 @@ function [data] = f7(data, func_flag)
     obj = (u - data.u2)' * data.M * (u - data.u2) + ...
         u' * data.A * v + data.u1' * data.M * v / data.dt;    
     tmp_obj = 0;
+    if min(abs(data.d0))<=eps
+        fprintf('\n Function objective_function(): some abs(d0)<=eps, do not normalize. \n');
+    end
     for iter = 1 : data.num_para
       tmp_M_sub = data.M_sub{iter};
       dd0 = data.d0(iter);
@@ -103,7 +106,6 @@ function [data] = f7(data, func_flag)
         tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:)) /(dd0^2);
       else
         tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:));
-        fprintf('\n Function compute_objective(): abs(dd)<=eps, do not normalize. \n');
       end
       clear tmp_M_sub; 
     end

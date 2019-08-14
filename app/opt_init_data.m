@@ -11,44 +11,54 @@ switch name
         data.max_outer_iter = 10;
         data.fun_idx = 7;
     case 'layer'
-        data.max_newton_iter = 20;
+        data.max_newton_iter = 10;
         data.init_u_tag = 1; % u0 = u1 or u2
         data.init_d = 10;
         data.gamma = 1.0e-5;
         data.enable_normalize = 1;
-        data.enable_damp_newton = 0;
+        data.enable_damp_newton = 1;
         data.max_damp_step = 10;
         data.max_outer_iter = 10;
         data.fun_idx = 7;
     case 'tensor'
         data.max_newton_iter = 10;
         data.init_u_tag = 1; % u0 = u1 or u2
-        data.init_d = 30; % 30 not convergent with or without damping
+        data.init_d = 10; % 30 also converges
         data.gamma = 1.0e-5; % 1.0, 0.1
         data.enable_normalize = 1;
         data.enable_damp_newton = 1;
         data.max_damp_step = 10;
-        data.max_outer_iter = 1;
+        data.max_outer_iter = 10;
         data.fun_idx = 7;
-    case 'tensor_cross_2'
+    case 'tensor_cross'
         data.max_newton_iter = 20;
         data.init_u_tag = 1; % u0 = u1 or u2
         data.init_d = 10; % 30 not convergent with or without damping
         data.gamma = 1e-5; % 1.0, 0.1
-        data.enable_normalize = 0; % for 4, normalizaton and damping not work
-        data.enable_damp_newton = 0;
+        data.enable_normalize = 1; 
+        data.enable_damp_newton = 1;
         data.max_damp_step = 10;
-        data.max_outer_iter = 1;
+        data.max_outer_iter = 10;
         data.fun_idx = 7;
     case 'mem17'
         data.max_newton_iter = 10;
         data.init_u_tag = 2; % u0 = u1 or u2
-        data.init_d = 60; 
+        data.init_d = 30; 
         data.gamma = 1e-5; % 1.0, 0.1
-        data.enable_normalize = 0;
-        data.enable_damp_newton = 0;
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 1;
         data.max_damp_step = 10;
-        data.max_outer_iter = 5;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
+    case 'h3k9'
+        data.max_newton_iter = 10;
+        data.init_u_tag = 2; % u0 = u1 or u2
+        data.init_d = 10; 
+        data.gamma = 1.0; 
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
         data.fun_idx = 7;
     case {1, 2, 3, 4, 5}
         data.max_newton_iter = 20;
@@ -75,10 +85,10 @@ switch name
         data.init_u_tag = 2;
         data.init_d = 10;
         data.gamma = 1e-5;
-        data.enable_normalize = 0;
-        data.enable_damp_newton = 0;
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 1;
         data.max_damp_step = 10;
-        data.max_outer_iter = 1;
+        data.max_outer_iter = 2;
         data.fun_idx = 7;
 %     case {'layered_diffusion_general', 9}
 %         data.max_newton_iter = 10;
@@ -97,7 +107,8 @@ return;
 
 function data = load_data(name)
   pa = '../data/';
-  % pa = '~/Desktop/opt_pde_0716/data/';
+  utility_fh = utility(); % utility_function handle in fluocell
+
   switch name
     case 'spot'
       data_file = strcat(pa, 'spot_diffusion.mat');
@@ -127,7 +138,7 @@ function data = load_data(name)
       data.fem = 1;
       data.default_solver = 0;
       % data.KK = 0;
-    case 'tensor_cross_2'
+    case 'tensor_cross'
       data_file = strcat(pa, 'tensor_cross_2.mat');
       data = load(data_file);
       data.tri(4, data.tri(4, :) == 3) = 2;
@@ -145,13 +156,35 @@ function data = load_data(name)
       data.cell_name = 'mem17';
       data.u1 = data.u(:, 1);
       data.u2 = data.u(:, 2);
-%       data.p = data.p_image;
-%      data.p_image = data.p;
+      data.dt = data.dt * 60; % Convert sec to min
+      mag = 98;
+      data.p = scale_by_magnification(data.p_image, mag); % require fluocell
+      utility_fh.print_parameter('magnification', mag);
       data.num_para = 1;
       data.coef_tag = 1;
       data.fem = 1;
       data.default_solver = 0;
       data.plot_surf = 1;
+    case 'h3k9'
+        data_file = strcat(pa, 'WTH3K9_4.mat');
+        data = load(data_file);
+        data.cell_name = 'WTH3K9';
+        data.u1 = data.u(:, 4);
+        data.u2 = data.u(:, 5);
+        data.dt = data.dt * 60;
+        mag = 99; 
+        data.p = scale_by_magnification(data.p_image, mag); % requires fluocell
+        utility_fh.print_parameter('magnification', mag);
+        % Use the computer simulation program to mark regions 1 and 2
+        data.tri(4, data.tri(4, :) == 1) = 2;
+        data.tri(4, data.tri(4, :) == 3) = 2;
+        data.tri(4, data.tri(4, :) == 4) = 2;
+        data.tri(4, data.tri(4, :) == 5) = 1;
+        data.num_para = 2;
+        data.coef_tag = 1;
+        data.fem = 1;
+        data.default_solver = 0;
+        data.plot_surf = 0;
     case {1, 2, 3, 4, 5, 6}
       data.cell_name = 'general_test';
       data.num_node = 1;
@@ -163,7 +196,7 @@ function data = load_data(name)
       data.fem = 0;
       data.default_solver = 1;
     case 'general'
-      data_file = strcat(pa, 'layered_diffusion_general_5_refined 2.mat');
+      data_file = strcat(pa, 'layered_diffusion_general_5_refined.mat');
       data = load(data_file);
       data.cell_name = 'layered_diffusion_general';
       for i = 1 : size(data.tri, 2)
@@ -191,32 +224,23 @@ function data = load_data(name)
 %       data.plot_surf = 1;
   end
 
+  % Kathy 08/13 need to add these back in later. 
+  data.path = pa; 
+  data.num_node = data.num_nodes;
+  
   if data.fem == 1
-    % change tri, edge, p, and p_image to column vectors
-    tri = (data.tri)';
-    edge = (data.edge)';
-    p = (data.p)';
-%    p_image = (data.p_image)';
-    data.num_node = size(data.p, 2);
-    data = rmfield(data, {'tri', 'edge','p', 'p_image'});
-    data.tri = tri;
-    data.edge = edge;
-    data.p = p;
-%     data.p_image = p_image;
-%    data.p_image = p; %%% Kathy 08/01/2018 This is weird
-    clear tri edge p p_image;
-
-    data.path = pa;
-%     data.num_para = size(unique(data.tri(:,4)), 1);
-    if strcmp(name, 'tensor_cross_2')
-        data.num_para = 3;
-    end
+%     % change tri, edge, p, and p_image to column vectors
+%     tri = (data.tri)';
+%     edge = (data.edge)';
+%     p = (data.p)';
+%     data = rmfield(data, {'tri', 'edge','p', 'p_image'});
+%     data.tri = tri;
+%     data.edge = edge;
+%     data.p = p;
+%     clear tri edge p p_image;
 
     % Remove some unnecessary fields
     data = rmfield(data, 'num_nodes');
-%     if isfield(data, 'coef_tag') % needed for name == 5
-%         data = rmfield(data, 'coef_tag');
-%     end
     data = rmfield(data, 'u');
   end
 
@@ -225,30 +249,26 @@ return;
 function data = normalize_data(data, enable_normalize)
   if enable_normalize
       % --------------- normalization ---------------
-      % zmax = max(max(data.u1),max(data.u2));
-      % zmin = min(min(data.u1),min(data.u2));
       abs_u_diff = abs(data.u2-data.u1);
       umax = max(abs_u_diff);
       umin = min(abs_u_diff);
-      xmax = max(data.p(:,1));
-      xmin = min(data.p(:,1));
-      ymax = max(data.p(:,2));
-      ymin = min(data.p(:,2));
+      xmax = max(data.p(1, :));
+      xmin = min(data.p(1, :));
+      ymax = max(data.p(2, :));
+      ymin = min(data.p(2, :));
       xmid  = (xmax+xmin)/2.0;
       ymid  = (ymax+ymin)/2.0;
       xy_scale = 1.0 / max(xmax-xmin,ymax-ymin);
       u_scale = 1.0 / (umax-umin);
 
-      p1 = xy_scale * (data.p(:, 1) - xmid);
-      p2 = xy_scale * (data.p(:, 2) - ymid);
-  %     data.u1 = (data.u1 - umin)*u_scale;
-  %     data.u2 = (data.u2 - umin)*u_scale;
+      p1 = xy_scale * (data.p(1, :) - xmid);
+      p2 = xy_scale * (data.p(2, :) - ymid);
       data.u1 = data.u1 * u_scale;
       data.u2 = data.u2 * u_scale;
-      data.p = [p1, p2];
+      data.p = [p1; p2];
       data.dt = data.dt * (xy_scale^2);
       data.gamma_d = data.gamma_d * xy_scale;
-      % init_d = init_d * xy_scale;
+      % The diffusion coefficients do not need to be scaled.
 
       % --------------- end ---------------
   else

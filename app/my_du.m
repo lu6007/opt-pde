@@ -1,6 +1,6 @@
 function data = my_du(data, jacobian_old)
 
-  num_node = data.num_nodes; 
+  num_node = data.num_node; 
 
   % assemble A and M
   A = data.A; M = data.M; 

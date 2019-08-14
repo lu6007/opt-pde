@@ -15,7 +15,7 @@ function data = my_newton(data, objective_fun)
   % data
   max_newton_iter = data.max_newton_iter;
   max_damp_iter = data.max_damp_iter;
-  num_node = data.num_nodes;
+  num_node = data.num_node;
   num_para = data.num_para; 
   gamma_d = data.gamma_d; 
   min_d = data.min_d; 

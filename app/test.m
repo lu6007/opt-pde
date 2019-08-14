@@ -24,8 +24,7 @@
 % (6) mtool/spmatrixplot()
 % (7) Making the choice of solver an option
 % (8) let v0= -A^(-1)(u0-u2)
-% (9) Work on test case 7: not convergent yet. Need to visualize the
-% diffusion coeffcients and add opt_init_data() and load_data() functions. 
+% (9) Work on test case 7: not convergent yet. 
 %
 % Results: 
 % (1) Switched from the direct solver to the decomposition solver, it was 100x
@@ -60,12 +59,17 @@
 % (22) Switched from test_func and test_first_derivatives to
 % objective functions(). 
 % (23) The Mem17 case seems to be working. 
+% (24) Added the opt_init_data() and load_data() functions. 
+% (25) Add the parts to visualize the diffusion coefficients. 
 
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
-function test(varargin)
+function test(name, varargin)
+data0 = opt_init_data(name);
 para.name = {'test_case', 'init_u_tag', 'enable_normalize', ...
     'enable_damp_newton', 'gamma', 'init_d'};
-default_value = {1, 2, 0, 0, 1.0e-5, 10};
+% default_value = {1, 2, 0, 0, 1.0e-5, 10};
+default_value = {1, data0.init_u_tag, data0.enable_normalize, ...
+    data0.enable_damp_newton, data0.gamma, data0.init_d}; 
 % Parse parameter and get the print_parameter() function
 [test_case, init_u_tag, enable_normalize, ...
     enable_damp_newton, gamma, init_d, ~, print_parameter] = ...
@@ -82,123 +86,26 @@ update_option = 2; % In the outer iterations, update d only, works better for ac
 % for noisy data. 
 utility_fh.print_parameter('update_option', update_option);
 
+load_data_function = data0.load_data_function; 
+normalize_data_function = data0.normalize_data_function;
+
 % test_case = 1; % 1 -- spot diffusion
 % init_u_tag = 1; % 1 -- u0=u1; 2 -- u0 = u2
 % init_d = 30; % both 10 and 30 converges
 min_d = 0; 
-max_newton_iter = 10;
-max_damp_step = 10;
-max_outer_step = 10;
+max_newton_iter = data0.max_newton_iter;
+max_damp_step = data0.max_damp_step;
+max_outer_step = data0.max_outer_iter;
 
 % --------------- section 2 ---------------
 % This section actually runs the algorithm
 
 % load data and make necessary modifications
 tic
-% data
-pa = '../data/';
-switch test_case
-  case 1
-    data_file = strcat(pa, 'spot_diffusion.mat');
-    data = load(data_file);
-    data.tri(4, data.tri(4, :) == 3) = 2;
-    data.tri(4, data.tri(4, :) == 4) = 2;
-    data.tri(4, data.tri(4, :) == 5) = 2;
-    data.cell_name = 'spot_diffusion';
-  case 2
-    data_file = strcat(pa, 'layered_diffusion.mat');
-    data = load(data_file);
-    data.cell_name = 'layered_diffusion';
-  case 3
-    data_file = strcat(pa, 'tensor_diffusion.mat');
-    data = load(data_file);
-    data.cell_name = 'tensor_diffusion';
-    % data.KK = 0; 
-  case 4
-    data_file = strcat(pa, 'tensor_cross_2.mat');
-    data = load(data_file);
-    data.tri(4, data.tri(4, :) == 3) = 2;
-    data.tri(4, data.tri(4, :) == 4) = 3;
-    data.tri(4, data.tri(4, :) == 5) = 3;
-    data.tri(4, data.tri(4, :) == 6) = 4;
-    data.cell_name = 'tensor_cross_2';
-    % data.num_para = 3;
-  case 5
-    data_file = strcat(pa, 'mem17.mat');
-    data = load(data_file);
-    data.cell_name = 'mem17';
-    data.u1 = data.u(:, 1);
-    data.u2 = data.u(:, 2);
-    data.p = data.p_image;
-    data.dt = data.dt * 60; % Convert min to sec
-    mag = 98;
-    data.p = scale_by_magnification(data.p, mag); % requires fluocell
-    utility_fh.print_parameter('magnification', mag);
-  case 6
-    data_file = strcat(pa, 'WTH3K9_4.mat');
-    data = load(data_file);
-    data.cell_name = 'WTH3K9';
-    data.u1 = data.u(:, 4);
-    data.u2 = data.u(:, 5);
-    data.p = data.p_image;
-    data.dt = data.dt * 60;
-    mag = 99; 
-    data.p = scale_by_magnification(data.p, mag); % requires fluocell
-    utility_fh.print_parameter('magnification', mag);
-    % Use the computer simulation program to mark regions 1 and 2
-    data.tri(4, data.tri(4, :) == 1) = 2;
-    data.tri(4, data.tri(4, :) == 3) = 2;
-    data.tri(4, data.tri(4, :) == 4) = 2;
-    data.tri(4, data.tri(4, :) == 5) = 1;
-  case 7 % Testing case not working yet. 8/7/2019
-    data_file = strcat(pa, 'layered_diffusion_general_5_refined.mat');
-    data = load(data_file);
-    for i = 1 : size(data.tri, 2)
-      data.tri(4, i) = i;
-    end
-    data.cell_name = 'layered_diffusion_general';
-    data.p = data.p_image; 
-end
-data.path = pa;
-data.num_para = size(unique(data.tri(4, :)), 2);
-if test_case == 4
-    data.num_para = 3;
-end
-
+% load data
+data = load_data_function(name);
 data.gamma_d = gamma;
-
-if enable_normalize
-    % --------------- normalization ---------------
-    % zmax = max(max(data.u1),max(data.u2));
-    % zmin = min(min(data.u1),min(data.u2));
-    abs_u_diff = abs(data.u2-data.u1);
-    umax = max(abs_u_diff);
-    umin = min(abs_u_diff);
-    xmax = max(data.p(1, :));
-    xmin = min(data.p(1, :));
-    ymax = max(data.p(2, :));
-    ymin = min(data.p(2, :));
-    xmid  = (xmax+xmin)/2.0;
-    ymid  = (ymax+ymin)/2.0;
-    xy_scale = 1.0 / max(xmax-xmin,ymax-ymin);
-    u_scale = 1.0 / (umax-umin);
-
-    p1 = xy_scale * (data.p(1, :) - xmid);
-    p2 = xy_scale * (data.p(2, :) - ymid);
-%     data.u1 = (data.u1 - umin)*u_scale;
-%     data.u2 = (data.u2 - umin)*u_scale;
-    data.u1 = data.u1 * u_scale;
-    data.u2 = data.u2 * u_scale; 
-    data.p = [p1;p2];
-    data.dt = data.dt * (xy_scale^2);
-    data.gamma_d = data.gamma_d * xy_scale;
-    % The diffusion coefficients do not need to be scaled. 
-    
-    % --------------- end ---------------
-else
-    xy_scale = 1;
-end
-data.xy_scale = xy_scale;
+data = normalize_data_function(data, enable_normalize);
 
 % ----- define the jacobian function and hessian -----
 % fd = test_first_derivative; % Hessien
@@ -209,7 +116,7 @@ objective_fun = fh{fun_idx};
 % ----- end -----
 
 % # of different diffision coefficients
-num_node = data.num_nodes;
+num_node = data.num_node;
 num_para = data.num_para;
 
 % --------------- initialization ---------------
@@ -253,7 +160,7 @@ for outer_iter = 1 : max_outer_step
   if data.gamma_d>1e-5
       data.gamma_d = max(data.gamma_d*0.01, 1.0e-5);
       if enable_normalize
-          data.gamma_d = data.gamma_d*xy_scale;
+          data.gamma_d = data.gamma_d * data.xy_scale;
       end
       utility_fh.print_parameter('data.gamma_d', data.gamma_d);
   end
@@ -269,5 +176,66 @@ dd_square = (cat(1, norm_dd{:})).^2;
 plot_newton_step(du_square, 'Norm(du)^2');
 plot_newton_step(dd_square, 'Norm(dd)^2');
 
-% d_res = d_res / xy_scale 
+u_star = data.u_new{end}; 
+if size(name, 2)>1
+    u_res = u_star(1:num_node);
+    v_res = u_star(num_node+1 : 2*num_node);
+    d_res = u_star(2*num_node+1:end); 
+end
+
+%   if size(name, 2) == 1
+%       index = fun_idx; 
+%       uu = data.u_res{1} + data.u2;
+%       u_star = uu(end);
+%       % 
+%       u_min = min([uu; data.u0]);
+%       u_max = max([uu; data.u0]);
+%       dist = max(u_max-u_star, u_star-u_min);
+%       step = 2*dist/20;
+%       uuu = (u_star-dist:step: u_star+dist+step)';
+%       data.x = uuu; 
+%       data = f{index}(data, 0);
+%       my_figure('font_size', 24, 'line_width', 3); hold on;
+%       plot(data.x, data.y, 'k--', 'LineWidth', 1);
+%       xlabel('u1'); ylabel('Objective');
+%       
+%       % 
+%       data.x = [data.u0; uu];
+%       data = f{index}(data, 0);
+%       plot(data.x, data.y, 'b', 'LineWidth', 2);
+%       plot(data.x(1), data.y(1), 'bo');
+%       plot(data.x(end), data.y(end), 'r*');  
+%   end
+
+  if isfield(data, 'plot_surf') && data.plot_surf
+    % d_res = d_res / data.xy_scale;  
+    point = data.p'; triangle = data.tri'; edge = data.edge';
+    figure; pdesurf(point', triangle', u_res);
+    hold on; pdemesh(point', edge', triangle')
+    colormap jet
+    colorbar; view(2);
+    title('u\_res');
+
+    figure; pdesurf(point', triangle', v_res);
+    hold on; pdemesh(point', edge', triangle')
+    colormap jet
+    colorbar; view(2);
+    title('v\_res');
+
+    figure;
+    if max(size(d_res)) ~= size(triangle, 1) && max(size(d_res)) ~= data.num_node
+      d_vec = zeros(1, size(triangle, 1)); 
+      for i = 1 : size(triangle, 1)
+        d_vec(i) = d_res(triangle(i, 4));
+      end
+      pdesurf(point', triangle', d_vec);
+    else
+      pdesurf(point', triangle', d_res');
+    end
+    hold on; pdemesh(point', edge', triangle')
+    colormap jet; 
+    colorbar; view(2);
+    title('d');
+  end
+
 end
