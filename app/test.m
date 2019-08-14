@@ -84,23 +84,20 @@ para.format = {'%d', '%d', '%d', '%5.2e', '%6.2f'};
 print_parameter(para);
 
 utility_fh = utility(); % utility_function handle
-update_option = 2; % In the outer iterations, update d only, works better for accurate data
-% for mem17 use 2
-% update_option = 2; % Update all three variables, u, v and d, works better
-% for noisy data. 
+update_option = data0.update_option; 
 utility_fh.print_parameter('update_option', update_option);
 
 load_data_function = data0.load_data_function; 
 normalize_data_function = data0.normalize_data_function;
+% ----- define the objective, jacobian and hessian functions -----
+fun_idx = data0.fun_idx;
+fh = objective_function; 
+objective_fun = fh{fun_idx};
 
-% test_case = 1; % 1 -- spot diffusion
-% init_u_tag = 1; % 1 -- u0=u1; 2 -- u0 = u2
-% init_d = 30; % both 10 and 30 converges
 min_d = 0; 
 max_newton_iter = data0.max_newton_iter;
 max_damp_step = data0.max_damp_step;
 max_outer_step = data0.max_outer_iter;
-fun_idx = data0.fun_idx;
 
 % --------------- section 2 ---------------
 % This section actually runs the algorithm
@@ -112,11 +109,6 @@ data = load_data_function(name);
 data.gamma_d = gamma;
 data = normalize_data_function(data, enable_normalize);
 
-% ----- define the jacobian function and hessian -----
-% fd = test_first_derivative; % Hessien
-% f = test_func; % Jacobian
-fh = objective_function; 
-objective_fun = fh{fun_idx};
 % ----- end -----
 
 % # of different diffision coefficients
@@ -124,10 +116,10 @@ num_node = data.num_node;
 num_para = data.num_para;
 
 % --------------- initialization ---------------
-% set the initial guess vector (u0, v0, d0)
+% set the initial guess vector (u0, [v0 ,] d0)
+d0 = init_d *ones(num_para, 1);
+data.min_d = min_d*ones(num_para, 1);
 u_len = num_node * 2 + num_para;
-d0 = init_d * ones(num_para, 1);
-data.min_d = min_d*ones(num_para, 1); 
 
 data.u0 = zeros(u_len, 1);
 if init_u_tag == 1

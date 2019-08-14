@@ -15,7 +15,7 @@ function data = f1(data, func_flag)
   x = data.x;
   if func_flag == 0
     % objective function
-    data.y = (x - 2).^2 + 5;
+    data.y = (x - 2)^2 + 5;
   elseif func_flag == 1 
     % jacobian function
     data.y = 2 * (x - 2);

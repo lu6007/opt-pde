@@ -9,8 +9,12 @@
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function data = my_newton(data, objective_fun)
 
-%   % function handles
-%   fh = objective_fun; 
+    switch data.cell_name
+        case 'general_test'
+            has_constraint = 0; % No constraint
+        otherwise
+            has_constraint = 1; % PDE constraint
+    end
 
   % data
   max_newton_iter = data.max_newton_iter;
@@ -19,7 +23,11 @@ function data = my_newton(data, objective_fun)
   num_para = data.num_para; 
   gamma_d = data.gamma_d; 
   min_d = data.min_d; 
-  u_old = data.u_old;
+  if has_constraint
+      u_old = data.u_old;
+  else
+      u_old = data.u_old(1:num_node);
+  end
   tol = 1.0e2 * eps;
 
   objective = zeros(max_newton_iter+1, 1);
@@ -28,22 +36,27 @@ function data = my_newton(data, objective_fun)
   norm_du = zeros(max_newton_iter+1, 1);
   d_hist = zeros(num_para, max_newton_iter+1);
   norm_dd = zeros(max_newton_iter+1, 1);
-  % data.Cv_bar and data.d0 are only used inside the my_newton function, 
-  % but not outside. 
-  data.Cv_bar = zeros(num_node, num_para);
-  data.d0 = data.u_old(2 * num_node+1: end); 
-
+  
+  data.d0 = data.u_old(2 * num_node+1:end);
+  if has_constraint
+        % data.Cv_bar and data.d0 are only used inside the my_newton function, 
+        % but not outside. 
+        data.Cv_bar = zeros(num_node, num_para);
+        last_string = 'Diffusion Coefficients';
+  else
+        last_string = 'x star';
+  end
   % Newton iterations
   % Objective Function, Norm of Jacobian, Damping Parameter
   % Residual, Diffusion Coefficients
   fprintf('Obj Func \t Norm J \t Damping \t ');
-  fprintf('Residual \t Diffusion Coefficients\n');
+  fprintf('Residual \t %s\n', last_string);
   %
   norm_du(1) = norm(u_old(1:num_node) - data.u2);
   norm_dd(1) = 0; 
   d_hist(:, 1) = data.d0;
   for i = 1: max_newton_iter
-    data.x = u_old;
+    data.x = u_old; 
     data = objective_fun(data, 1);
     jacobian_old = data.y;
     if i == 1
@@ -60,6 +73,10 @@ function data = my_newton(data, objective_fun)
         break;
     end
     
+    switch data.cell_name
+        case 'general_test'
+            du = - hessian_old \ jacobian_old; 
+        otherwise
 %     %%%%%%%%%% Sovlvers %%%%%%%%%%%%%%%%%%%%%%%%%%
 %     % Direct solver
 %     du = - hessian_old \ jacobian_old;
@@ -69,8 +86,9 @@ function data = my_newton(data, objective_fun)
 %     du = - gmres(hessian_old, jacobian_old, [], 1.0e-6, 2000, L, U);
 %     %
     % OPT-PDE solver 
-    data = my_du(data, jacobian_old);
-    du = [data.delta_u; data.delta_v; data.delta_d]; 
+        data = my_du(data, jacobian_old);
+        du = [data.delta_u; data.delta_v; data.delta_d]; 
+    end
     %
     
     if ~max_damp_iter % no damping
@@ -107,16 +125,19 @@ function data = my_newton(data, objective_fun)
         % fprintf('# of damping steps at step %d: %d \n', i, damp_iter);
     end % if ~max_damp_iter % no damping
     
-    % constraint dd >= min_d
-    % This step is necessary in some cases. 
-    % This bound is only optionally triggered. Need to print something
-    % here. 
-    u_new(2*num_node+1: end) = max(u_new(2*num_node+1: end),min_d);
-    
+    if has_constraint
+        % constraint dd >= min_d
+        % This step is necessary in some cases. 
+        % This bound is only optionally triggered. Need to print something
+        % here. 
+        u_new(2*num_node+1: end) = max(u_new(2*num_node+1: end),min_d);
+        uu = u_new(1:num_node);
+        dd = u_new(2*num_node+1: end); 
+    else
+        uu = 0;
+        dd = 0; 
+    end
     % calculate objective function and Jacobian
-    uu = u_new(1:num_node);
-    % vv = u_new(num_node+1:2*num_node); 
-    dd = u_new(2*num_node+1: end); 
     data.x = u_new;
     data = objective_fun(data, 0);
     objective(i+1) = data.y;
@@ -129,26 +150,39 @@ function data = my_newton(data, objective_fun)
 
   % From left to right: Objective Function, Norm of Jacobian, Damping Parameter
   % Residual, Diffusion Coefficients
-    fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t %s \n', ...
-        objective(i), J(i), s_hist(i), norm_du(i), num2str(u_new(2*num_node+1:end)'));
 
-    % convergence test
-    tmp = u_old(2*num_node+1: end) - dd;
-    tmp = tmp ./ u_old(2*num_node+1: end);
-
-    if J(i+1) < 1e-06 && max(abs(tmp)) < 0.01
-      break;
+    fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
+        objective(i), J(i), s_hist(i), norm_du(i));
+    if has_constraint % print diff_coef
+        fprintf('%s \n', num2str(u_new(2*num_node+1:end)'));
+        % convergence test
+        tmp = u_old(2*num_node+1: end) - dd;
+        tmp = tmp ./ u_old(2*num_node+1: end);
+        criteria = (J(i+1) < 1e-06 && max(abs(tmp)) < 0.01); 
     else
-      clear u_old jacobian_old;
-      u_old = u_new;
-      data.x = u_old;
-      data = objective_fun(data, 2); % Hessian
-    end % if norm(jacobian_new) < 1e-06 && max(abs(tmp)) < 0.01
+        fprintf('%s \n', num2str(u_new));
+        criteria = (J(i+1)<1.e-06); 
+    end
+
+    if criteria % True: (J(i+1) < 1e-06 && max(abs(tmp)) < 0.01)
+        break; 
+    else
+        clear u_old jacobian_old;
+        u_old = u_new;
+        data.x = u_old;
+        data = objective_fun(data, 2); % Hessian
+    end
   end % for i = 1 : max_newton_iter
 
   outer_iter = data.outer_iter;
   num_newton_iter = i+1;
-  data.u_new{outer_iter} = u_new;
+  if has_constraint
+    data.u_new{outer_iter} = u_new;
+  else
+      vv = zeros(num_node, 1);
+      data.u_new{outer_iter} = [u_new; vv; 0];
+      clear vv; 
+  end
   data.i{outer_iter} = i;
   data.J{outer_iter} = J;
   data.s_hist{outer_iter} = s_hist(1:num_newton_iter);

@@ -1,5 +1,30 @@
 function data = opt_init_data(name)
+% data.update_option
+% 1 - In the outer iterations, update d only, works better for accurate data
+% 2 - Update all three variables, u, v and d, works better
+% for noisy data. 
+data.update_option = 1;
 switch name
+    case {1, 2, 3, 4, 5}
+        data.max_newton_iter = 10;
+        data.init_u_tag = 1; 
+        data.init_d = 10; % value not important, place holder
+        data.gamma = 1e-5; 
+        data.enable_normalize = 0;
+        data.enable_damp_newton = 0;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 1;
+        data.fun_idx = name;
+    case 6
+        data.max_newton_iter = 20;
+        data.init_u_tag = 2; % u0 = u1 or u2
+        data.init_d = 10; 
+        data.gamma = 1e-5; 
+        data.enable_normalize = 0;
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 1;
+        data.fun_idx = name;        
     case 'spot'
         data.max_newton_iter = 10;
         data.init_u_tag = 1; % u0 = u1 or u2
@@ -131,6 +156,7 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 10;
         data.fun_idx = 7;
+        data.update_option = 2;
     case 'h3k9'
         data.max_newton_iter = 10;
         data.init_u_tag = 2; % u0 = u1 or u2
@@ -141,26 +167,7 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 10;
         data.fun_idx = 7;
-    case {1, 2, 3, 4, 5}
-        data.max_newton_iter = 20;
-        data.init_u_tag = 2; % u0 = u1 or u2
-        data.init_d = 10; % 30 not convergent with or without damping
-        data.gamma = 1e-5; % 1.0, 0.1
-        data.enable_normalize = 0;
-        data.enable_damp_newton = 0;
-        data.max_damp_step = 10;
-        data.max_outer_iter = 1;
-        data.fun_idx = name;
-    case 6
-        data.max_newton_iter = 20;
-        data.init_u_tag = 2; % u0 = u1 or u2
-        data.init_d = 10; 
-        data.gamma = 1e-5; 
-        data.enable_normalize = 0;
-        data.enable_damp_newton = 1;
-        data.max_damp_step = 10;
-        data.max_outer_iter = 1;
-        data.fun_idx = name;        
+        data.update_option = 2; 
     case 'general'
         data.max_newton_iter = 5;
         data.init_u_tag = 2;
@@ -171,6 +178,7 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 2;
         data.fun_idx = 7;
+        data.update_option = 2;
 %     case {'layered_diffusion_general', 9}
 %         data.max_newton_iter = 10;
 %         data.init_u_tag = 2;
@@ -191,6 +199,26 @@ function data = load_data(name)
   utility_fh = utility(); % utility_function handle in fluocell
 
   switch name
+    case {1, 3, 4, 5, 6}
+      data.cell_name = 'general_test';
+      data.num_node = 1;
+      data.num_para = 1;
+      % data.fun_idx = name;
+      data.u1 = 10;
+      data.u2 = 0;
+      data.coef_tag = 1;
+      data.fem = 0;
+      data.default_solver = 1;
+    case 2
+      data.cell_name = 'general_test';
+      data.num_node = 2;
+      data.num_para = 1;
+      % data.fun_idx = name;
+      data.u1 = 10;
+      data.u2 = 0;
+      data.coef_tag = 1;
+      data.fem = 0;
+      data.default_solver = 1;
     case {'spot','spot111', 'spot211'}
       data_file = strcat(pa, 'spot_diffusion.mat');
       data = load(data_file);
@@ -265,16 +293,6 @@ function data = load_data(name)
         data.fem = 1;
         data.default_solver = 0;
         data.plot_surf = 0;
-    case {1, 2, 3, 4, 5, 6}
-      data.cell_name = 'general_test';
-      data.num_node = 1;
-      data.num_para = 0;
-      % data.fun_idx = name;
-      data.u0 = 1;
-      data.u2 = 0;
-      data.coef_tag = 1;
-      data.fem = 0;
-      data.default_solver = 1;
     case 'general'
       data_file = strcat(pa, 'layered_diffusion_general_5_refined.mat');
       data = load(data_file);
@@ -305,8 +323,10 @@ function data = load_data(name)
   end
 
   % Kathy 08/13 need to add these back in later. 
-  data.path = pa; 
-  data.num_node = data.num_nodes;
+  if size(name, 2)>1 % name = 1, 2, ..., or 6
+      data.path = pa; 
+      data.num_node = data.num_nodes;
+  end
   
   if data.fem == 1
 %     % change tri, edge, p, and p_image to column vectors
