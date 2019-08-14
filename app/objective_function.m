@@ -29,18 +29,20 @@ return
 function data = f2(data, func_flag)
   x = data.x;
   if func_flag == 0
-    data.y = exp(x) - 2 * x.^2;
+    % data.y = exp(x) - 2 * x.^2;
+    data.y = exp(x)-2*x^2;
   elseif func_flag == 1
     data.y = exp(x) - 4 * x;
   elseif func_flag == 2
-    data.y = diag(exp(x) - 4);
+    % data.y = diag(exp(x) - 4);
+    data.y = exp(x)-4; 
   end
 return
 
 function data = f3(data, func_flag)
   x = data.x;
   if func_flag == 0
-    data.y = (x - 2).^2;
+    data.y = sum((x - 2).^2);
   elseif func_flag == 1
     data.y = 2 * (x - 2);
   elseif func_flag == 2
@@ -51,7 +53,7 @@ return
 function data = f4(data, func_flag)
   x = data.x;
   if func_flag == 0
-    data.y = sin(x) + 1.1/2 * x.^2;
+    data.y = sum(sin(x) + 1.1/2 * x.^2);
   elseif func_flag == 1
     data.y = cos(x) + 1.1 * x;
   elseif func_flag == 2
@@ -62,24 +64,27 @@ return
 function data = f5(data, func_flag)
   x = data.x;
   if func_flag == 0
-    data.y = x.^3 / 3 - 5 * x;
+    data.y = sum(x.^3 / 3 - 5 * x);
   elseif func_flag == 1
-    data.y = (x) .^2 - 5;
+    data.y = (x) .^2 - 5*ones(length(x), 1);
   elseif func_flag == 2
-    data.y = 2 * (x);
+    data.y = 2 * diag(x);
   end
 return
 
 % f6 is an example of non-convergence
-function data = f6(data, func_flag)
+function data = f6(data, func_flag) 
   x = data.x;
   if func_flag == 0
-    data.y = 3/4 * nthroot(x,3).^4; % 3/4 * x.^(4/3)
+    % data.y = 3/4 * nthroot(x,3).^4; % sum of 3/4 * x.^(4/3)
+    data.y = sum(3/4 * x.^(4/3)); 
   elseif func_flag == 1
     % Use the nthroot function to return a real number
     data.y = nthroot(x, 3); % x.^(1/3)
+    % data.y = x.^(1/3);
   elseif func_flag == 2
-    data.y = 1/3 * nthroot(x, 3) .^ (-2); % 1/3 * x.^(-2/3)
+    data.y = 1/3 * diag(nthroot(x, 3) .^ (-2)); 
+    % data.y = 1/3 * diag(x.(-2/3)); 
   end
 return
 

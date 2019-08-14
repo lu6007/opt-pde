@@ -102,10 +102,18 @@ max_outer_step = data0.max_outer_iter;
 % --------------- section 2 ---------------
 % This section actually runs the algorithm
 
-% load data and make necessary modifications
+% load data 
 tic
-% load data
+
 data = load_data_function(name);
+switch data.cell_name
+    case 'general_test'
+        has_constraint = 0; % No constraint
+    otherwise
+        has_constraint = 1; % PDE constraint
+end
+data.has_constraint = has_constraint; 
+utility_fh.print_parameter('data.has_constraint', has_constraint);
 data.gamma_d = gamma;
 data = normalize_data_function(data, enable_normalize);
 
@@ -148,7 +156,7 @@ for outer_iter = 1 : max_outer_step
   d0 = data.u_old(2*num_node+1:end);
   d_hist = data.d_hist{outer_iter};
   tmp = (d_hist(:, end)-d0)./d0;
-  if max(abs(tmp)) < 0.01 && data.gamma_d <= 1e-5 
+  if has_constraint && max(abs(tmp)) < 0.01 && data.gamma_d <= 1e-5 
     break;
   end
   switch update_option

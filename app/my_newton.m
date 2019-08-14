@@ -9,14 +9,8 @@
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function data = my_newton(data, objective_fun)
 
-    switch data.cell_name
-        case 'general_test'
-            has_constraint = 0; % No constraint
-        otherwise
-            has_constraint = 1; % PDE constraint
-    end
-
   % data
+  has_constraint = data.has_constraint; 
   max_newton_iter = data.max_newton_iter;
   max_damp_iter = data.max_damp_iter;
   num_node = data.num_node;
@@ -44,7 +38,7 @@ function data = my_newton(data, objective_fun)
         data.Cv_bar = zeros(num_node, num_para);
         last_string = 'Diffusion Coefficients';
   else
-        last_string = 'x star';
+        last_string = 'x';
   end
   % Newton iterations
   % Objective Function, Norm of Jacobian, Damping Parameter
@@ -154,17 +148,24 @@ function data = my_newton(data, objective_fun)
     fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
         objective(i), J(i), s_hist(i), norm_du(i));
     if has_constraint % print diff_coef
-        fprintf('%s \n', num2str(u_new(2*num_node+1:end)'));
+        fprintf('%s \n', num2str(u_old(2*num_node+1:end)'));
         % convergence test
         tmp = u_old(2*num_node+1: end) - dd;
         tmp = tmp ./ u_old(2*num_node+1: end);
         criteria = (J(i+1) < 1e-06 && max(abs(tmp)) < 0.01); 
     else
-        fprintf('%s \n', num2str(u_new));
+        fprintf('%s \n', num2str(u_old'));
         criteria = (J(i+1)<1.e-06); 
     end
 
     if criteria % True: (J(i+1) < 1e-06 && max(abs(tmp)) < 0.01)
+        fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
+            objective(i+1), J(i+1), s_hist(i+1), norm_du(i+1));
+        if has_constraint % print diff_coef
+            fprintf('%s \n', num2str(u_new(2*num_node+1:end)'));
+        else
+            fprintf('%s \n', num2str(u_new'));
+        end
         break; 
     else
         clear u_old jacobian_old;

@@ -5,20 +5,30 @@ function data = opt_init_data(name)
 % for noisy data. 
 data.update_option = 1;
 switch name
-    case {1, 2, 3, 4, 5}
-        data.max_newton_iter = 10;
+    case {1, 2, 3, 5}
+        data.max_newton_iter = 20;
         data.init_u_tag = 1; 
-        data.init_d = 10; % value not important, place holder
+        data.init_d = 0; % value not important, place holder
         data.gamma = 1e-5; 
         data.enable_normalize = 0;
         data.enable_damp_newton = 0;
         data.max_damp_step = 10;
         data.max_outer_iter = 1;
         data.fun_idx = name;
-    case 6
+    case 4 % damping is required. 
         data.max_newton_iter = 20;
-        data.init_u_tag = 2; % u0 = u1 or u2
-        data.init_d = 10; 
+        data.init_u_tag = 1; 
+        data.init_d = 0; % value not important, place holder
+        data.gamma = 1e-5; 
+        data.enable_normalize = 0;
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 1;
+        data.fun_idx = name;
+    case 6 % Does not converge, there is something wrong with the nthroot function
+        data.max_newton_iter = 10;
+        data.init_u_tag = 1; % u0 = u1 or u2
+        data.init_d = 0; % place holder 
         data.gamma = 1e-5; 
         data.enable_normalize = 0;
         data.enable_damp_newton = 1;
@@ -199,22 +209,22 @@ function data = load_data(name)
   utility_fh = utility(); % utility_function handle in fluocell
 
   switch name
-    case {1, 3, 4, 5, 6}
+    case {1, 2}
       data.cell_name = 'general_test';
       data.num_node = 1;
-      data.num_para = 1;
+      data.num_para = 0;
       % data.fun_idx = name;
       data.u1 = 10;
       data.u2 = 0;
       data.coef_tag = 1;
       data.fem = 0;
       data.default_solver = 1;
-    case 2
+    case {3, 4, 5, 6}
       data.cell_name = 'general_test';
       data.num_node = 2;
-      data.num_para = 1;
+      data.num_para = 0;
       % data.fun_idx = name;
-      data.u1 = 10;
+      data.u1 = 10*ones(data.num_node, 1);
       data.u2 = 0;
       data.coef_tag = 1;
       data.fem = 0;
@@ -349,26 +359,26 @@ return;
 function data = normalize_data(data, enable_normalize)
   if enable_normalize
       % --------------- normalization ---------------
-      abs_u_diff = abs(data.u2-data.u1);
-      umax = max(abs_u_diff);
-      umin = min(abs_u_diff);
-      xmax = max(data.p(1, :));
-      xmin = min(data.p(1, :));
-      ymax = max(data.p(2, :));
-      ymin = min(data.p(2, :));
-      xmid  = (xmax+xmin)/2.0;
-      ymid  = (ymax+ymin)/2.0;
-      xy_scale = 1.0 / max(xmax-xmin,ymax-ymin);
-      u_scale = 1.0 / (umax-umin);
+          abs_u_diff = abs(data.u2-data.u1);
+          umax = max(abs_u_diff);
+          umin = min(abs_u_diff);
+          xmax = max(data.p(1, :));
+          xmin = min(data.p(1, :));
+          ymax = max(data.p(2, :));
+          ymin = min(data.p(2, :));
+          xmid  = (xmax+xmin)/2.0;
+          ymid  = (ymax+ymin)/2.0;
+          xy_scale = 1.0 / max(xmax-xmin,ymax-ymin);
+          u_scale = 1.0 / (umax-umin);
 
-      p1 = xy_scale * (data.p(1, :) - xmid);
-      p2 = xy_scale * (data.p(2, :) - ymid);
-      data.u1 = data.u1 * u_scale;
-      data.u2 = data.u2 * u_scale;
-      data.p = [p1; p2];
-      data.dt = data.dt * (xy_scale^2);
-      data.gamma_d = data.gamma_d * xy_scale;
-      % The diffusion coefficients do not need to be scaled.
+          p1 = xy_scale * (data.p(1, :) - xmid);
+          p2 = xy_scale * (data.p(2, :) - ymid);
+          data.u1 = data.u1 * u_scale;
+          data.u2 = data.u2 * u_scale;
+          data.p = [p1; p2];
+          data.dt = data.dt * (xy_scale^2);
+          data.gamma_d = data.gamma_d * xy_scale;
+          % The diffusion coefficients do not need to be scaled.
 
       % --------------- end ---------------
   else
