@@ -20,15 +20,13 @@
 
 % Kathy 4/4/2019
 % Questions:
-% (1) How to run a general test function for a simple objective funtion to
-% demonstrate the simple normalization and damping Newton's method works?
-% --> how to initialize for a general function? (Yiwen)
-% (3) Split the update matrix part and update diffusion coefficient part
+% (1) Make >> test('general') work
+% (2) **** test on H3K9 biosensor results.
+% (3) split uu, vv, dd in my_newton(). 
+% (4) Split the update matrix part and update diffusion coefficient part
 % in cal_sub_mat(), Cal_J, and hessian_sub_mat().
-% (5) **** test on H3K9 biosensor results.
-% (6) mtool/spmatrixplot()
-% (7) Making the choice of solver an option
-% (8) let v0= -A^(-1)(u0-u2)
+% (5) Making the choice of solver an option
+% (6) let v0= -A^(-1)(u0-u2)
 %
 % Results: 
 % (1) Switched from the direct solver to the decomposition solver, it was 100x
@@ -65,6 +63,9 @@
 % (23) The Mem17 case seems to be working. 
 % (24) Added the opt_init_data() and load_data() functions. 
 % (25) Add the codes to visualize the diffusion map. 
+% (26) General unconstrained optimization works now
+% (27) Checked mtool/spmatrixplot(), it seems not needed
+
 
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function test(name, varargin)

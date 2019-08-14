@@ -25,7 +25,7 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 1;
         data.fun_idx = name;
-    case 6 % Does not converge, there is something wrong with the nthroot function
+    case 6 % Does not converge, possibly due to the complex values of the nthroot function
         data.max_newton_iter = 10;
         data.init_u_tag = 1; % u0 = u1 or u2
         data.init_d = 0; % place holder 

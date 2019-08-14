@@ -127,6 +127,7 @@ function data = my_newton(data, objective_fun)
         u_new(2*num_node+1: end) = max(u_new(2*num_node+1: end),min_d);
         uu = u_new(1:num_node);
         dd = u_new(2*num_node+1: end); 
+        print_para = min(data.num_para, 5); % print the first 5 parameters
     else
         uu = 0;
         dd = 0; 
@@ -148,7 +149,7 @@ function data = my_newton(data, objective_fun)
     fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
         objective(i), J(i), s_hist(i), norm_du(i));
     if has_constraint % print diff_coef
-        fprintf('%s \n', num2str(u_old(2*num_node+1:end)'));
+        fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
         % convergence test
         tmp = u_old(2*num_node+1: end) - dd;
         tmp = tmp ./ u_old(2*num_node+1: end);
@@ -162,7 +163,7 @@ function data = my_newton(data, objective_fun)
         fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
             objective(i+1), J(i+1), s_hist(i+1), norm_du(i+1));
         if has_constraint % print diff_coef
-            fprintf('%s \n', num2str(u_new(2*num_node+1:end)'));
+            fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
         else
             fprintf('%s \n', num2str(u_new'));
         end
