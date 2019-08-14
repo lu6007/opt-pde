@@ -24,10 +24,10 @@
 % (6) mtool/spmatrixplot()
 % (7) Making the choice of solver an option
 % (8) let v0= -A^(-1)(u0-u2)
-% (9) Test case 7: not convergent yet. 
-
+% (9) Work on test case 7: not convergent yet. Need to visualize the
+% diffusion coeffcients and add opt_init_data() and load_data() functions. 
 %
-% Results
+% Results: 
 % (1) Switched from the direct solver to the decomposition solver, it was 100x
 % faster and more accurate.
 % (2) Switched normalization to abs(u2-u1), converges as fast as without
@@ -60,7 +60,6 @@
 % (22) Switched from test_func and test_first_derivatives to
 % objective functions(). 
 % (23) The Mem17 case seems to be working. 
-% 
 
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function test(varargin)
