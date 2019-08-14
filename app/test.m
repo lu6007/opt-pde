@@ -6,12 +6,17 @@
 %         change the initial guess in later code to allow different
 %         initial guess for each different coefficients
 % gamma: gamma used in the algorithm
-% test_case: decide which test case to run
-%            1 -- spot diffusion
-%            2 -- layered diffusion
-%            3 -- tensor diffusion
-%            4 -- tensor cross  diffusion
-%            5 -- mem17 diffusion
+% name: decide which test problem to run
+%            1-6 -- general diffusion problems with data.fun_idx = 1-6
+%            'spot' -- spot diffusion
+%            'layer' -- layered diffusion
+%            'tensor' -- tensor diffusion
+%            'tensor_cross_2' -- tensor cross diffusion
+%            'mem17' -- mem17 diffusion
+%            'general' -- general diffusion problem
+% Example
+% >> name = 1;
+% >> test(name);
 
 % Kathy 4/4/2019
 % Questions:
@@ -24,7 +29,6 @@
 % (6) mtool/spmatrixplot()
 % (7) Making the choice of solver an option
 % (8) let v0= -A^(-1)(u0-u2)
-% (9) Work on test case 7: not convergent yet. 
 %
 % Results: 
 % (1) Switched from the direct solver to the decomposition solver, it was 100x
@@ -60,23 +64,23 @@
 % objective functions(). 
 % (23) The Mem17 case seems to be working. 
 % (24) Added the opt_init_data() and load_data() functions. 
-% (25) Add the parts to visualize the diffusion coefficients. 
+% (25) Add the codes to visualize the diffusion map. 
 
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function test(name, varargin)
 data0 = opt_init_data(name);
-para.name = {'test_case', 'init_u_tag', 'enable_normalize', ...
+para.name = {'init_u_tag', 'enable_normalize', ...
     'enable_damp_newton', 'gamma', 'init_d'};
-% default_value = {1, 2, 0, 0, 1.0e-5, 10};
-default_value = {1, data0.init_u_tag, data0.enable_normalize, ...
+% default_value = {2, 0, 0, 1.0e-5, 10};
+default_value = {data0.init_u_tag, data0.enable_normalize, ...
     data0.enable_damp_newton, data0.gamma, data0.init_d}; 
 % Parse parameter and get the print_parameter() function
-[test_case, init_u_tag, enable_normalize, ...
+[init_u_tag, enable_normalize, ...
     enable_damp_newton, gamma, init_d, ~, print_parameter] = ...
     parse_parameter(para.name, default_value, varargin);
-para.value = {test_case, init_u_tag, enable_normalize, ...
+para.value = {init_u_tag, enable_normalize, ...
     enable_damp_newton, gamma, init_d};
-para.format = {'%d', '%d', '%d', '%d', '%5.2e', '%6.2f'}; 
+para.format = {'%d', '%d', '%d', '%5.2e', '%6.2f'}; 
 print_parameter(para);
 
 utility_fh = utility(); % utility_function handle
@@ -96,6 +100,7 @@ min_d = 0;
 max_newton_iter = data0.max_newton_iter;
 max_damp_step = data0.max_damp_step;
 max_outer_step = data0.max_outer_iter;
+fun_idx = data0.fun_idx;
 
 % --------------- section 2 ---------------
 % This section actually runs the algorithm
@@ -111,7 +116,6 @@ data = normalize_data_function(data, enable_normalize);
 % fd = test_first_derivative; % Hessien
 % f = test_func; % Jacobian
 fh = objective_function; 
-fun_idx = 7;
 objective_fun = fh{fun_idx};
 % ----- end -----
 
@@ -138,6 +142,13 @@ data.u0(num_node * 2 + 1 : end) = d0; % d0
 data.max_newton_iter = max_newton_iter; %300;
 data.max_damp_iter = enable_damp_newton * max_damp_step;
 data.u_old = data.u0;
+% data.u_star = cell(max_outer_iter, 1);
+% data.i = cell(max_outer_iter, 1);
+% data.J = cell(max_outer_iter, 1);
+% data.s_hist = cell(max_outer_iter, 1);
+% data.d_hist = cell(max_outer_iter, 1);
+% data.u_res = cell(max_outer_iter, 1);
+% data.objective = cell(max_outer_iter, 1);
 % 
 for outer_iter = 1 : max_outer_step
   data.outer_iter = outer_iter;

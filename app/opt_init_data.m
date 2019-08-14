@@ -10,6 +10,26 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 10;
         data.fun_idx = 7;
+    case 'spot111'
+        data.max_newton_iter = 10;
+        data.init_u_tag = 1; % u0 = u1 or u2
+        data.init_d = 10;
+        data.gamma = 1.0e-5;
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
+    case 'spot211'
+        data.max_newton_iter = 10;
+        data.init_u_tag = 2; % u0 = u1 or u2
+        data.init_d = 10;
+        data.gamma = 1.0e-5;
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
     case 'layer'
         data.max_newton_iter = 10;
         data.init_u_tag = 1; % u0 = u1 or u2
@@ -20,11 +40,51 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 10;
         data.fun_idx = 7;
+    case 'layer200'
+        data.max_newton_iter = 10;
+        data.init_u_tag = 2; % u0 = u1 or u2
+        data.init_d = 10;
+        data.gamma = 1.0e-5;
+        data.enable_normalize = 0;
+        data.enable_damp_newton = 0;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
     case 'tensor'
         data.max_newton_iter = 10;
         data.init_u_tag = 1; % u0 = u1 or u2
         data.init_d = 10; % 30 also converges
         data.gamma = 1.0e-5; % 1.0, 0.1
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
+    case 'tensor200'
+        data.max_newton_iter = 10;
+        data.init_u_tag = 2; % u0 = u1 or u2
+        data.init_d = 10; % 30 also converges
+        data.gamma = 1.0e-5; % 1.0, 0.1
+        data.enable_normalize = 0;
+        data.enable_damp_newton = 0;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
+    case 'tensor110'
+        data.max_newton_iter = 10;
+        data.init_u_tag = 1; % u0 = u1 or u2
+        data.init_d = 10; % 30 also converges
+        data.gamma = 1.0e-5; % 1.0, 0.1
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 0;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
+    case 'tensord30'
+        data.max_newton_iter = 10;
+        data.init_u_tag = 1; % u0 = u1 or u2
+        data.init_d = 30; % 30 also converges
+        data.gamma = 1; 
         data.enable_normalize = 1;
         data.enable_damp_newton = 1;
         data.max_damp_step = 10;
@@ -40,6 +100,27 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 10;
         data.fun_idx = 7;
+    case 'tensor_cross211'
+        data.max_newton_iter = 20;
+        data.init_u_tag = 2; % u0 = u1 or u2
+        data.init_d = 10; % 30 not convergent with or without damping
+        data.gamma = 1e-5; % 1.0, 0.1
+        data.enable_normalize = 1; 
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
+    case 'tensor_crossd30'
+        data.max_newton_iter = 20;
+        data.init_u_tag = 1; % u0 = u1 or u2
+        data.init_d = 30; % 30 not convergent with or without damping
+        data.gamma = 1; % 1.0, 0.1
+        data.enable_normalize = 1; 
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 10;
+        data.fun_idx = 7;
+        % need to set update_option = 1 in test()
     case 'mem17'
         data.max_newton_iter = 10;
         data.init_u_tag = 2; % u0 = u1 or u2
@@ -110,7 +191,7 @@ function data = load_data(name)
   utility_fh = utility(); % utility_function handle in fluocell
 
   switch name
-    case 'spot'
+    case {'spot','spot111', 'spot211'}
       data_file = strcat(pa, 'spot_diffusion.mat');
       data = load(data_file);
       data.tri(4, data.tri(4, :) == 3) = 2;
@@ -121,7 +202,7 @@ function data = load_data(name)
       data.coef_tag = 1;
       data.fem = 1;
       data.default_solver = 0;
-    case 'layer'
+    case {'layer', 'layer200'}
       data_file = strcat(pa, 'layered_diffusion.mat');
       data = load(data_file);
       data.cell_name = 'layered_diffusion';
@@ -129,7 +210,7 @@ function data = load_data(name)
       data.coef_tag = 1;
       data.fem = 1;
       data.default_solver = 0;
-    case 'tensor'
+    case {'tensor', 'tensor200', 'tensor110', 'tensord30'}
       data_file = strcat(pa, 'tensor_diffusion.mat');
       data = load(data_file);
       data.cell_name = 'tensor_diffusion';
@@ -137,8 +218,7 @@ function data = load_data(name)
       data.coef_tag = 2;
       data.fem = 1;
       data.default_solver = 0;
-      % data.KK = 0;
-    case 'tensor_cross'
+    case {'tensor_cross', 'tensor_cross211', 'tensor_crossd30'}
       data_file = strcat(pa, 'tensor_cross_2.mat');
       data = load(data_file);
       data.tri(4, data.tri(4, :) == 3) = 2;
