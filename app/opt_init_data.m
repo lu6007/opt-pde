@@ -5,6 +5,27 @@ function data = opt_init_data(name)
 % for noisy data. 
 data.update_option = 1;
 switch name
+    case 'general'
+        data.max_newton_iter = 5;
+        data.init_u_tag = 2;
+        data.init_d = 10;
+        data.gamma = 1e-5;
+        data.enable_normalize = 1;
+        data.enable_damp_newton = 1;
+        data.max_damp_step = 10;
+        data.max_outer_iter = 2;
+        data.fun_idx = 7; % 8
+        data.update_option = 2;
+%     case {'layered_diffusion_general', 9}
+%         data.max_newton_iter = 10;
+%         data.init_u_tag = 2;
+%         data.init_d = 10;
+%         data.gamma = 1e-5;
+%         data.enable_normalize = 1;
+%         data.enable_damp_newton = 1;
+%         data.max_damp_step = 10;
+%         data.max_outer_iter = 10;
+%         data.fun_idx = 8;
     case {1, 2, 3, 5}
         data.max_newton_iter = 20;
         data.init_u_tag = 1; 
@@ -178,27 +199,6 @@ switch name
         data.max_outer_iter = 10;
         data.fun_idx = 7;
         data.update_option = 2; 
-    case 'general'
-        data.max_newton_iter = 5;
-        data.init_u_tag = 2;
-        data.init_d = 10;
-        data.gamma = 1e-5;
-        data.enable_normalize = 1;
-        data.enable_damp_newton = 1;
-        data.max_damp_step = 10;
-        data.max_outer_iter = 2;
-        data.fun_idx = 7;
-        data.update_option = 2;
-%     case {'layered_diffusion_general', 9}
-%         data.max_newton_iter = 10;
-%         data.init_u_tag = 2;
-%         data.init_d = 10;
-%         data.gamma = 1e-5;
-%         data.enable_normalize = 1;
-%         data.enable_damp_newton = 1;
-%         data.max_damp_step = 10;
-%         data.max_outer_iter = 10;
-%         data.fun_idx = 8;
 end
 data.load_data_function = @load_data;
 data.normalize_data_function = @normalize_data;

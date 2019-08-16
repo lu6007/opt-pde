@@ -154,83 +154,97 @@ function [data] = f7(data, func_flag)
 return
 
 % Not sure about this purpose, need to be tested. 8/12/2019 Kathy
-function [data] = f8(data, func_flag)
-  x = data.x;
-  num_node = size(data.p, 1);
-
-  u = x(1 : num_node);
-  v = x(num_node+1 : 2*num_node);
-  d = x(2*num_node+1:end);
-  
-  p = data.p; 
-  tri = data.tri;
-
-  if func_flag == 0
-
-    objective_tmp = (u - data.u2)' * data.M * (u - data.u2) ...
-                  + u' * data.A * v - data.u1' * data.M * v / data.dt;
-                        % + data.u1' * data.M * u_tmp(num_node+1:2*num_node) / data.dt;
-
-    tmp_obj = 0;
-    if strcmp(data.cell_name, 'layered_diffusion_general_h1')
-      delta_d = (d-data.d0) ./ data.d0;
-      [A_tmp, M_tmp] = assemble_matrix(p', tri');
-%       tmp_obj = data.gamma_d * delta_d' * data.M * delta_d...
-%          + data.gamma_d * delta_d' * (data.A - data.M / data.dt) * delta_d;
-      tmp_obj = data.gamma_d * delta_d' * M_tmp * delta_d...
-        + data.gamma_d * delta_d' * A_tmp * delta_d;
-    else
-      for iter = 1 : data.num_para
-        tmp_M_sub = data.M_sub{iter};
-        d0 = data.d0(iter);
-        delta_d = d(iter)-d0;
-        tmp_obj = tmp_obj + data.gamma_d * (delta_d^2) * sum(tmp_M_sub(:)) /(d0^2);
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        tmp_A_sub = data.A_sub{iter};
-        % tmp_obj = tmp_obj - u_tmp(2*num_node+iter)^2 * sum(sum(data.A_sub{iter}));
-        % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^2 * sum(sum(data.A_sub{iter}));
-        % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^2 * sum(sum(data.A_sub{iter})) / data.gamma_d;
-        % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^2 * sum(sum(abs(data.A_sub{iter})));
-        % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^3 * sum(sum(data.A_sub{iter}));
-        % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^3 * sum(sum(abs(data.A_sub{iter})));
-        tmp_obj = tmp_obj + data.gamma_d * (delta_d^2) * sum(tmp_A_sub(:)) / (d0^2);
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      end
+function data = f8(data, func_flag)
+    data = f7(data, func_flag);
+    num_node = data.num_node;
+    x = data.x;
+    d = x(2*num_node+1:end);
+    gamma2 = 1; 
+    % Calculate the H1 half norm of d and its derivatives. 
+    switch func_flag
+        case 0 % objective
+            dh1_half = 0; 
     end
-    objective_tmp = objective_tmp + tmp_obj;
-    data.y = objective_tmp;
-  elseif func_flag == 1
-    % data
-    % assemble A and M 
-    if ~isfield(data, 'assemble') || data.assemble
-      data = cal_sub_mat(data, d);
-
-      [A, M] = assemble_matrix(p', tri', 'diff_coef', data.diff_coef');
-      A = A + M / data.dt;
-      data.M = M;
-      data.A = A;
-    end
-
-    [Ju, Jv, Jd] = cal_J(data, d, u, v);
-    y = [Ju; Jv; Jd];
-    data.y = y;
-  elseif func_flag == 2
-    % data = hessian_sub_mat(data, d, u, v);
-    data = hessian_sub_mat(data, u, v);
-
-    Cu = data.Cu;
-    Cv = data.Cv;
-    G = data.G;
-    if max(G(:)) == Inf
-      pause
-    end
-    A = data.A;
-    M = data.M;
-    fillin = zeros(size(A));
-    H = [M ,   A,      Cu;
-         A,   fillin, Cv;
-         Cu', Cv',    G ];
-
-    data.y = H;
-  end
+    data.y = data.y + gamma2*dh1_half;
 return
+% function data = objective_diffusion_h1norm(data, func_flag)
+%   x = data.x;
+%   num_node = data.node;
+% 
+%   u = x(1 : num_node);
+%   v = x(num_node+1 : 2*num_node);
+%   d = x(2*num_node+1:end);
+%   
+%   p = data.p; 
+%   tri = data.tri;
+% 
+%   if func_flag == 0
+% 
+%     objective_tmp = (u - data.u2)' * data.M * (u - data.u2) ...
+%                   + u' * data.A * v - data.u1' * data.M * v / data.dt;
+%                         % + data.u1' * data.M * u_tmp(num_node+1:2*num_node) / data.dt;
+% 
+%     tmp_obj = 0;
+%     if strcmp(data.cell_name, 'layered_diffusion_general_h1')
+%       delta_d = (d-data.d0) ./ data.d0;
+%       [A_tmp, M_tmp] = assemble_matrix(p', tri');
+% %       tmp_obj = data.gamma_d * delta_d' * data.M * delta_d...
+% %          + data.gamma_d * delta_d' * (data.A - data.M / data.dt) * delta_d;
+%       tmp_obj = data.gamma_d * delta_d' * M_tmp * delta_d...
+%         + data.gamma_d * delta_d' * A_tmp * delta_d;
+%     else
+%       for iter = 1 : data.num_para
+%         tmp_M_sub = data.M_sub{iter};
+%         d0 = data.d0(iter);
+%         delta_d = d(iter)-d0;
+%         tmp_obj = tmp_obj + data.gamma_d * (delta_d^2) * sum(tmp_M_sub(:)) /(d0^2);
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         tmp_A_sub = data.A_sub{iter};
+%         % tmp_obj = tmp_obj - u_tmp(2*num_node+iter)^2 * sum(sum(data.A_sub{iter}));
+%         % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^2 * sum(sum(data.A_sub{iter}));
+%         % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^2 * sum(sum(data.A_sub{iter})) / data.gamma_d;
+%         % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^2 * sum(sum(abs(data.A_sub{iter})));
+%         % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^3 * sum(sum(data.A_sub{iter}));
+%         % tmp_obj = tmp_obj + u_tmp(2*num_node+iter)^3 * sum(sum(abs(data.A_sub{iter})));
+%         tmp_obj = tmp_obj + data.gamma_d * (delta_d^2) * sum(tmp_A_sub(:)) / (d0^2);
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%       end
+%     end
+%     objective_tmp = objective_tmp + tmp_obj;
+%     data.y = objective_tmp;
+%   elseif func_flag == 1
+%     % data
+%     % assemble A and M 
+%     if ~isfield(data, 'assemble') || data.assemble
+%       data = cal_sub_mat(data, d);
+% 
+%       [A, M] = assemble_matrix(p', tri', 'diff_coef', data.diff_coef');
+%       A = A + M / data.dt;
+%       data.M = M;
+%       data.A = A;
+%     end
+% 
+%     [Ju, Jv, Jd] = cal_J(data, d, u, v);
+%     y = [Ju; Jv; Jd];
+%     data.y = y;
+%   elseif func_flag == 2
+%     % data = hessian_sub_mat(data, d, u, v);
+%     data = hessian_sub_mat(data, u, v);
+% 
+%     Cu = data.Cu;
+%     Cv = data.Cv;
+%     G = data.G;
+%     if max(G(:)) == Inf
+%       pause
+%     end
+%     A = data.A;
+%     M = data.M;
+%     fillin = zeros(size(A));
+%     H = [M ,   A,      Cu;
+%          A,   fillin, Cv;
+%          Cu', Cv',    G ];
+% 
+%     data.y = H;
+%   end
+% 
+% return
