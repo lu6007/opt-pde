@@ -48,22 +48,25 @@ function data = my_newton(data, objective_fun)
   norm_dd(1) = 0; 
   d_old = data.d0; 
   for i = 1: max_newton_iter
-        % The jacobian is calculated first to update the matrices. 
-        data.x = u_old; 
-        data = objective_fun(data, 1); 
-        jacobian_old = data.y;
         if i == 1
+            data.x = u_old; 
+            data.d = d_old; 
+            % The jacobian is calculated first to update the matrices. 
+            data = objective_fun(data, 1); 
+            jacobian_old = data.y;
             norm_jacobian(i) = norm(jacobian_old);
             data = objective_fun(data, 0);
             objective(i) = data.y;
         end
-        % data = hessian_fun(data);
+        
+        % Calculate Hessian
         data = objective_fun(data, 2); 
         hessian_old = data.y;
 
         if norm_jacobian(i) < tol
-           % u_new = u_old; 
-            break;
+%            u_new = u_old; 
+%            d_new = d_old; 
+           break;
         end
 
         switch data.cell_name
@@ -80,27 +83,32 @@ function data = my_newton(data, objective_fun)
     %     %
         % OPT-PDE solver 
             data = my_du(data, jacobian_old);
-            du = [data.delta_u; data.delta_v; data.delta_d]; 
+            du = [data.delta_u; data.delta_v]; 
+            delta_d = data.delta_d; 
         end
         %
 
         if ~max_damp_iter % no damping
             ss = 1; 
             u_new = u_old + ss * du;
-            data.x = u_new;
-            data = objective_fun(data, 1);
-            jacobian_new = data.y; 
+            d_new = d_old + ss * delta_d; 
+%             data.x = u_new;
+%             data.d = d_new;
+%             data = objective_fun(data, 1); 
+%             jacobian_new = data.y;
         else
             % Damping
-            alpha0 = norm(hessian_old * du + jacobian_old) / norm_jacobian(i);
+            alpha0 = norm(hessian_old * [du; delta_d] + jacobian_old) / norm_jacobian(i);
             delta = (1 - alpha0) / 2; % set delta: 0 < delta < 1 - alpha0
-            % KK = data.KK;
+            % KK = data.KK; 
             KK = 0;
             for damp_iter = 1:max_damp_iter
                 ss = 1.0/(1+KK * norm_jacobian(i));
                 %%%%%%%%%%%%%%%%%%%%%
                 u_new = u_old + ss * du;
                 data.x = u_new;
+                d_new = d_old + ss * delta_d; 
+                data.d = d_new;
                 data = objective_fun(data, 1);
                 jacobian_new = data.y;
                 %%%%%%%%%%%%%%%%%%%%%
@@ -111,7 +119,7 @@ function data = my_newton(data, objective_fun)
                     KK = 10 * KK;
                   end
                 else
-                    data.KK = KK / 10;
+                    data.KK = KK / 10; % Kathy: should this be KK, not data.KK? 
                     break;
                 end
             end % for damp_iter = 1:max_damp_iter
@@ -123,22 +131,25 @@ function data = my_newton(data, objective_fun)
             % This step is necessary in some cases. 
             % This bound is only optionally triggered. Need to print something
             % here. 
-            u_new(2*num_node+1: end) = max(u_new(2*num_node+1: end),min_d);
-            uu = u_new(1:num_node);
-            dd = u_new(2*num_node+1: end); 
+            d_new = max(d_new, min_d);
+%             uu = u_new(1:num_node);
+%             dd = d_new; 
             print_para = min(data.num_para, 5); % print the first 5 parameters
         else
-            uu = 0; % should be u_new(1:num_node); 
-            dd = 0; 
+%             uu = u_new(1:num_node); 
+            d_new = 0; 
         end
         % calculate objective function and Jacobian
         data.x = u_new;
+        data.d = d_new; 
+        data = objective_fun(data, 1); % Jacobian needs to calculate first to update matrices
+        jacobian_new = data.y; 
+        norm_jacobian(i+1) = norm(jacobian_new);
         data = objective_fun(data, 0);
         objective(i+1) = data.y;
-        norm_jacobian(i+1) = norm(jacobian_new);
-
-        norm_du(i+1) = norm(uu - data.u2);
-        norm_dd(i+1) = norm((dd-d_old)./data.d0);
+        
+        norm_du(i+1) = norm(u_new(1:num_node) - data.u2);
+        norm_dd(i+1) = norm((d_new - d_old)./data.d0);
 
       % From left to right: Objective Function, Norm of Jacobian, Damping Parameter
       % Residual, Diffusion Coefficients
@@ -146,10 +157,11 @@ function data = my_newton(data, objective_fun)
         fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
             objective(i), norm_jacobian(i), ss, norm_du(i));
         if has_constraint % print diff_coef
-            fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
+            fprintf('%s \n', num2str(d_old(1:print_para)'));
             % convergence test
-            tmp = (dd-d_old)./d_old; 
-            criteria = (norm_jacobian(i+1) < sqrt(tol) && max(abs(tmp)) < 0.01); 
+            tmp = (d_new - d_old)./d_old; 
+            criteria = (norm_jacobian(i+1) < sqrt(tol) && max(abs(tmp)) < 0.01);
+            clear tmp; 
         else
             fprintf('%s \n', num2str(u_old'));
             criteria = (norm_jacobian(i+1) < tol); 
@@ -159,15 +171,16 @@ function data = my_newton(data, objective_fun)
             fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
                 objective(i+1), norm_jacobian(i+1), 0, norm_du(i+1));
             if has_constraint % print diff_coef
-                fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
+                fprintf('%s \n', num2str(d_old(1:print_para)'));
             else
                 fprintf('%s \n', num2str(u_new'));
             end
             break; 
         else
-            clear u_old jacobian_old;
+            clear u_old d_old jacobian_old;
             u_old = u_new;
-            d_old = dd; 
+            d_old = d_new; 
+            jacobian_old = jacobian_new; 
         end        
   end % for i = 1 : max_newton_iter
 
@@ -175,9 +188,11 @@ function data = my_newton(data, objective_fun)
   num_newton_iter = i+1;
   if has_constraint
     data.u_new = u_new;
+    data.d_old = d_old; 
+    data.d_new = d_new; 
   else
       vv = zeros(num_node, 1);
-      data.u_new = [u_new; vv; 0];
+      data.u_new = [u_new; vv];
       clear vv; 
   end
   data.norm_du{outer_iter} = norm_du(1:num_newton_iter);

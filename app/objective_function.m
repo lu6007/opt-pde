@@ -93,7 +93,7 @@ function [data] = f7(data, func_flag)
   num_node = data.num_node;
   u = x(1 : num_node);
   v = x(num_node+1 : 2*num_node);
-  d = x(2*num_node+1:end);
+  d = data.d;
 
   if func_flag == 0 % objective
     gamma_d = data.gamma_d; 
