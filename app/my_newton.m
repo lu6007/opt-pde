@@ -58,12 +58,12 @@ function data = my_newton(data, objective_fun)
         objective(i) = data.y;
         d_old = data.d0; 
     end
-    % data = hessian_fun(data);
+    % Calculate Hessian
     data = objective_fun(data, 2); 
     hessian_old = data.y;
 
     if norm_jacobian(i) < tol
-        u_new = u_old; 
+        % u_new = u_old; 
         break;
     end
     
@@ -112,7 +112,7 @@ function data = my_newton(data, objective_fun)
                 KK = 10 * KK;
               end
             else
-                data.KK = KK / 10;
+                % data.KK = KK / 10;
                 break;
             end
         end % for damp_iter = 1:max_damp_iter
@@ -126,11 +126,11 @@ function data = my_newton(data, objective_fun)
         % here. 
         u_new(2*num_node+1: end) = max(u_new(2*num_node+1: end),min_d);
         uu = u_new(1:num_node);
-        dd = u_new(2*num_node+1: end); 
+        d_new = u_new(2*num_node+1: end); 
         print_para = min(data.num_para, 5); % print the first 5 parameters
     else
-        uu = 0;
-        dd = 0; 
+        % uu = 0;
+        d_new = 0; 
     end
     % calculate objective function and norm of Jacobian
     data.x = u_new;
@@ -138,9 +138,8 @@ function data = my_newton(data, objective_fun)
     objective(i+1) = data.y;
     norm_jacobian(i+1) = norm(jacobian_new);
 
-    d_new = dd;
     norm_du(i+1) = norm(uu - data.u2);
-    norm_dd(i+1) = norm(dd - d_old)/norm(data.d0);
+    norm_dd(i+1) = norm(d_new - d_old)/norm(data.d0);
 
   % From left to right: Objective Function, Norm of Jacobian, Damping Parameter
   % Residual, Diffusion Coefficients
@@ -150,8 +149,7 @@ function data = my_newton(data, objective_fun)
     if has_constraint % print diff_coef
         fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
         % convergence test
-        tmp = u_old(2*num_node+1: end) - dd;
-        tmp = tmp ./ u_old(2*num_node+1: end);
+        tmp = (d_old - d_new)./d_old;
         criteria = (norm_jacobian(i+1) < 1e-06 && max(abs(tmp)) < 0.01); 
     else
         fprintf('%s \n', num2str(u_old'));
@@ -170,6 +168,7 @@ function data = my_newton(data, objective_fun)
     else
         clear u_old jacobian_old;
         u_old = u_new;
+        d_old = d_new; 
         data.x = u_old;
         data = objective_fun(data, 2); % Hessian
     end
