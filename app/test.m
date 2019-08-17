@@ -153,7 +153,9 @@ data.u_old = data.u0;
 % 
 for outer_iter = 1 : max_outer_step
   data.outer_iter = outer_iter;
+  %%%
   data = my_newton(data, objective_fun);
+  %%%
   d0 = data.u_old(2*num_node+1:end);
   d_hist = data.d_hist{outer_iter};
   tmp = (d_hist(:, end)-d0)./d0;
@@ -161,7 +163,7 @@ for outer_iter = 1 : max_outer_step
     break;
   end
   switch update_option
-      case 1 %Update d only
+      case 1 % Update d only
           % In the outer iteration, only update gamma and d, but not u and v. 
           data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
       case 2 % Update u, v and d

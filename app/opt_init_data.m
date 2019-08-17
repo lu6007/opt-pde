@@ -176,7 +176,7 @@ switch name
         data.max_damp_step = 10;
         data.max_outer_iter = 10;
         data.fun_idx = 7;
-        % need to set update_option = 1 in test()
+        data.update_option = 1; % update_option = 2 does not converge
     case 'mem17'
         data.max_newton_iter = 10;
         data.init_u_tag = 2; % u0 = u1 or u2

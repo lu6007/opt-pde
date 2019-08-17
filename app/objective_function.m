@@ -95,11 +95,12 @@ function [data] = f7(data, func_flag)
   v = x(num_node+1 : 2*num_node);
   d = x(2*num_node+1:end);
 
-  if func_flag == 0
+  if func_flag == 0 % objective
     gamma_d = data.gamma_d; 
-    obj = (u - data.u2)' * data.M * (u - data.u2) + ...
-        u' * data.A * v + data.u1' * data.M * v / data.dt;    
-    tmp_obj = 0;
+    norm_u = (u - data.u2)' * data.M * (u - data.u2); 
+    AM = data.A; % data.A = A+M/data.dt
+    constraint = u' * AM * v + data.u1' * data.M * v / data.dt; 
+    norm_d = 0;
     if min(abs(data.d0))<=eps
         fprintf('\n Function objective_function(): some abs(d0)<=eps, do not normalize. \n');
     end
@@ -108,31 +109,33 @@ function [data] = f7(data, func_flag)
       dd0 = data.d0(iter);
       ddd = d(iter)-dd0;
       if abs(dd0) > eps
-        tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:)) /(dd0^2);
+        norm_d = norm_d + gamma_d * (ddd^2) * sum(tmp_M_sub(:)) /(dd0^2);
       else
-        tmp_obj = tmp_obj + gamma_d * (ddd^2) * sum(tmp_M_sub(:));
+        norm_d = norm_d + gamma_d * (ddd^2) * sum(tmp_M_sub(:));
       end
       clear tmp_M_sub; 
     end
-    y = obj + tmp_obj;
-  elseif func_flag == 1
+    % 
+    y = norm_u + norm_d + constraint;
+    
+  elseif func_flag == 1 % update matrices and calculate first derivative
+    data = cal_sub_mat(data, d);
+    % Assemble and update the matrics and submatrices
     % assemble A and M
     data.assemble = 1; 
     if ~isfield(data, 'assemble') || data.assemble
-      data = cal_sub_mat(data, d);
       [A, M] = assemble_matrix(data.p, data.tri, 'diff_coef', data.diff_coef); 
       A = A + M / data.dt;
       data.M = M;
-      data.A = A;   
+      data.A = A;   % changing matrix A here, very confusing. when was data.A first assembled? 
     end
-
+    %
     [Ju, Jv, Jd] = cal_J(data, d, u, v);
     y = [Ju; Jv; Jd];
-  elseif func_flag == 2
-    % Call objective_function first to assemble A_sub, M_sub, A and M
-    % Update Cu, Cv, and G
+  elseif func_flag == 2 % calculate second derivative
+    % Call objective_function with fun_flag = 1 first to assemble A_sub and M_sub
+    % Then update Cu, Cv, and G
     data = hessian_sub_mat(data, u, v);
-    
     Cu = data.Cu;
     Cv = data.Cv;
     G = data.G;
@@ -142,10 +145,10 @@ function [data] = f7(data, func_flag)
     end
     A = data.A;
     M = data.M;
-    fillin = zeros(size(A));
-    H = [M ,   A,      Cu;
-         A,   fillin, Cv;
-         Cu', Cv',    G ];
+    O = zeros(size(A));
+    H = [M ,  A,   Cu;
+         A,   O,   Cv;
+         Cu', Cv', G ];
 
     y = H;
     clear Cu Cv G H; 
@@ -167,6 +170,7 @@ function data = f8(data, func_flag)
     end
     data.y = data.y + gamma2*dh1_half;
 return
+
 % function data = objective_diffusion_h1norm(data, func_flag)
 %   x = data.x;
 %   num_node = data.node;

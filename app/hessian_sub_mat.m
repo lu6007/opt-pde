@@ -19,7 +19,6 @@ function data = hessian_sub_mat(data, u, v)
   if sum(ismember(coef_1, cell_name)) > 0
 
     % format linear system
-
     for i = 1 : num_para
       Cv(:, i) = A_sub{i} * u;
       Cu(:, i) = A_sub{i} * v;

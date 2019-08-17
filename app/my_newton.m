@@ -50,8 +50,9 @@ function data = my_newton(data, objective_fun)
   norm_dd(1) = 0; 
   d_hist(:, 1) = data.d0;
   for i = 1: max_newton_iter
+    % The jacobian is calculated first to update the matrices
     data.x = u_old; 
-    data = objective_fun(data, 1);
+    data = objective_fun(data, 1); 
     jacobian_old = data.y;
     if i == 1
         J(i) = norm(jacobian_old);

@@ -22,7 +22,7 @@ function [Ju, Jv, Jd] = cal_J(data, d, u, v)
     % evaluate J for current [u; v; d]
     Ju = M * (u - u2) + A * v;
     Jv = A * u - M * u1 / dt;
-    % Jv = A * u - M * (u2 - u1)/dt; 
+    % Jv = A * u - M * (u - u1)/dt; 
 
     dd0 = d - d0;
     for i = 1 : num_para      
@@ -35,24 +35,20 @@ function [Ju, Jv, Jd] = cal_J(data, d, u, v)
     end
 
   else
-      
+
+    Ju = M * (u - u2) + A * v;
+    Jv = A * u - M * u1 / dt;
+    % Jv = A*u + M * (u-u1) / dt;
+    dd0 = d - d0;
     switch cell_name
       case 'tensor_diffusion'
 
-        Ju = M * (u - u2) + A * v;
-        Jv = A * u - M * u1 / dt;
-
-        dd0 = d - d0;
         Jd(1, 1) = gamma * sum(M_sub{1}(:)) * dd0(1) / (d0(1)^2) + u' * A_sub{1} * v;
         Jd(2, 1) = gamma * sum(M_sub{2}(:)) * dd0(2) / (d0(2)^2) + u' * (A_sub{2}+A_sub{4}) * v;
         Jd(3, 1) = gamma * sum(M_sub{3}(:)) * dd0(3) / (d0(3)^2) + u' * (A_sub{3}+A_sub{5}) * v;
 
       case 'tensor_cross_2'
 
-        Ju = M * (u - u2) + A * v;
-        Jv = A * u - M * u1 / dt;
-
-        dd0 = d - d0;
         Jd(1, 1) = gamma * sum(M_sub{1}(:)) * dd0(1) / (d0(1)^2) + u' * A_sub{1} * v;
         sumM2 = sum(M_sub{2}(:));
         sumM3 = sum(M_sub{3}(:));
