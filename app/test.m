@@ -146,7 +146,6 @@ data.u_old = data.u0;
 % data.u_star = cell(max_outer_iter, 1);
 % data.i = cell(max_outer_iter, 1);
 % data.norm_jacobian = cell(max_outer_iter, 1);
-% data.d_hist = cell(max_outer_iter, 1);
 % data.u_res = cell(max_outer_iter, 1);
 % data.objective = cell(max_outer_iter, 1);
 % 
@@ -156,8 +155,8 @@ for outer_iter = 1 : max_outer_step
   data = my_newton(data, objective_fun);
   %%%
   d0 = data.u_old(2*num_node+1:end);
-  d_hist = data.d_hist{outer_iter};
-  tmp = (d_hist(:, end)-d0)./d0;
+  d_new = data.d_new; 
+  tmp = (d_new-d0)./d0;
   if has_constraint && max(abs(tmp)) < 0.01 && data.gamma_d <= 1e-5 
     break;
   end

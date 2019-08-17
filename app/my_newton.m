@@ -28,7 +28,6 @@ function data = my_newton(data, objective_fun)
   objective = zeros(max_newton_iter+1, 1);
   norm_jacobian  = zeros(max_newton_iter+1, 1);
   norm_du = zeros(max_newton_iter+1, 1);
-  d_hist = zeros(num_para, max_newton_iter+1);
   norm_dd = zeros(max_newton_iter+1, 1);
   
   data.d0 = data.u_old(2 * num_node+1:end);
@@ -48,7 +47,6 @@ function data = my_newton(data, objective_fun)
   %
   norm_du(1) = norm(u_old(1:num_node) - data.u2);
   norm_dd(1) = 0; 
-  d_hist(:, 1) = data.d0;
   for i = 1: max_newton_iter
     % The jacobian is calculated first to update the matrices
     data.x = u_old; 
@@ -58,6 +56,7 @@ function data = my_newton(data, objective_fun)
         norm_jacobian(i) = norm(jacobian_old);
         data = objective_fun(data, 0);
         objective(i) = data.y;
+        d_old = data.d0; 
     end
     % data = hessian_fun(data);
     data = objective_fun(data, 2); 
@@ -139,9 +138,9 @@ function data = my_newton(data, objective_fun)
     objective(i+1) = data.y;
     norm_jacobian(i+1) = norm(jacobian_new);
 
-    d_hist(:, i+1) = dd;
+    d_new = dd;
     norm_du(i+1) = norm(uu - data.u2);
-    norm_dd(i+1) = norm(dd - d_hist(:,i))/norm(data.d0);
+    norm_dd(i+1) = norm(dd - d_old)/norm(data.d0);
 
   % From left to right: Objective Function, Norm of Jacobian, Damping Parameter
   % Residual, Diffusion Coefficients
@@ -187,7 +186,7 @@ function data = my_newton(data, objective_fun)
   end
   data.i{outer_iter} = i;
   data.norm_jacobian{outer_iter} = norm_jacobian;
-  data.d_hist{outer_iter} = d_hist(:, 1:num_newton_iter);
+  data.d_old = d_old; data.d_new = d_new; 
   data.norm_du{outer_iter} = norm_du(1:num_newton_iter);
   data.norm_dd{outer_iter} = norm_dd(1:num_newton_iter)*sqrt(num_node*gamma_d);
   data.objective{outer_iter} = objective(1:num_newton_iter);
