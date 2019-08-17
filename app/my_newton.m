@@ -23,9 +23,10 @@ function data = my_newton(data, objective_fun)
       u_old = data.u_old(1:num_node);
   end
   tol = 1.0e2 * eps;
+  fprintf('Function my_newton(): tol = %E ------ \n', tol); 
 
   objective = zeros(max_newton_iter+1, 1);
-  J  = zeros(max_newton_iter+1, 1);
+  norm_jacobian  = zeros(max_newton_iter+1, 1);
   s_hist = zeros(max_newton_iter+1, 1);
   norm_du = zeros(max_newton_iter+1, 1);
   d_hist = zeros(num_para, max_newton_iter+1);
@@ -43,7 +44,7 @@ function data = my_newton(data, objective_fun)
   % Newton iterations
   % Objective Function, Norm of Jacobian, Damping Parameter
   % Residual, Diffusion Coefficients
-  fprintf('Obj Func \t Norm J \t Damping \t ');
+  fprintf('Obj Func \t Norm Jacob \t Damping \t ');
   fprintf('Residual \t %s\n', last_string);
   %
   norm_du(1) = norm(u_old(1:num_node) - data.u2);
@@ -55,7 +56,7 @@ function data = my_newton(data, objective_fun)
     data = objective_fun(data, 1); 
     jacobian_old = data.y;
     if i == 1
-        J(i) = norm(jacobian_old);
+        norm_jacobian(i) = norm(jacobian_old);
         data = objective_fun(data, 0);
         objective(i) = data.y;
     end
@@ -63,7 +64,7 @@ function data = my_newton(data, objective_fun)
     data = objective_fun(data, 2); 
     hessian_old = data.y;
 
-    if J(i) < tol
+    if norm_jacobian(i) < tol
         u_new = u_old; 
         break;
     end
@@ -94,19 +95,19 @@ function data = my_newton(data, objective_fun)
         jacobian_new = data.y; 
     else
         % Damping
-        alpha0 = norm(hessian_old * du + jacobian_old) / J(i);
+        alpha0 = norm(hessian_old * du + jacobian_old) / norm_jacobian(i);
         delta = (1 - alpha0) / 2; % set delta: 0 < delta < 1 - alpha0
         % KK = data.KK;
         KK = 0;
         for damp_iter = 1:max_damp_iter
-            ss = 1.0/(1+KK * J(i));
+            ss = 1.0/(1+KK * norm_jacobian(i));
             %%%%%%%%%%%%%%%%%%%%%
             u_new = u_old + ss * du;
             data.x = u_new;
             data = objective_fun(data, 1);
             jacobian_new = data.y;
             %%%%%%%%%%%%%%%%%%%%%
-            if (1 - norm(jacobian_new)/J(i))/ss < delta
+            if (1 - norm(jacobian_new)/norm_jacobian(i))/ss < delta
               if KK == 0
                 KK = 1;
               else
@@ -133,11 +134,11 @@ function data = my_newton(data, objective_fun)
         uu = 0;
         dd = 0; 
     end
-    % calculate objective function and Jacobian
+    % calculate objective function and norm of Jacobian
     data.x = u_new;
     data = objective_fun(data, 0);
     objective(i+1) = data.y;
-    J(i+1) = norm(jacobian_new);
+    norm_jacobian(i+1) = norm(jacobian_new);
 
     d_hist(:, i+1) = dd;
     s_hist(i+1) = ss;
@@ -148,21 +149,21 @@ function data = my_newton(data, objective_fun)
   % Residual, Diffusion Coefficients
 
     fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
-        objective(i), J(i), s_hist(i), norm_du(i));
+        objective(i), norm_jacobian(i), s_hist(i), norm_du(i));
     if has_constraint % print diff_coef
         fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
         % convergence test
         tmp = u_old(2*num_node+1: end) - dd;
         tmp = tmp ./ u_old(2*num_node+1: end);
-        criteria = (J(i+1) < 1e-06 && max(abs(tmp)) < 0.01); 
+        criteria = (norm_jacobian(i+1) < 1e-06 && max(abs(tmp)) < 0.01); 
     else
         fprintf('%s \n', num2str(u_old'));
-        criteria = (J(i+1)<1.e-06); 
+        criteria = (norm_jacobian(i+1)<1.e-06); 
     end
 
-    if criteria % True: (J(i+1) < 1e-06 && max(abs(tmp)) < 0.01)
+    if criteria % True: (norm_jacobian(i+1) < 1e-06 && max(abs(tmp)) < 0.01)
         fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
-            objective(i+1), J(i+1), s_hist(i+1), norm_du(i+1));
+            objective(i+1), norm_jacobian(i+1), s_hist(i+1), norm_du(i+1));
         if has_constraint % print diff_coef
             fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
         else
@@ -187,7 +188,7 @@ function data = my_newton(data, objective_fun)
       clear vv; 
   end
   data.i{outer_iter} = i;
-  data.J{outer_iter} = J;
+  data.norm_jacobian{outer_iter} = norm_jacobian;
   data.s_hist{outer_iter} = s_hist(1:num_newton_iter);
   data.d_hist{outer_iter} = d_hist(:, 1:num_newton_iter);
   data.norm_du{outer_iter} = norm_du(1:num_newton_iter);
