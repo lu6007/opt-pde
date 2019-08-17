@@ -126,7 +126,7 @@ num_para = data.num_para;
 
 % --------------- initialization ---------------
 % set the initial guess vector (u0, [v0 ,] d0)
-d0 = init_d *ones(num_para, 1);
+data.d0 = init_d *ones(num_para, 1);
 data.min_d = min_d*ones(num_para, 1);
 u_len = num_node * 2 + num_para;
 
@@ -136,40 +136,36 @@ if init_u_tag == 1
 elseif init_u_tag == 2
   data.u0(1 : num_node) = data.u2;
 end
-data.u0(num_node * 2 + 1 : end) = d0; % d0
+data.u0(num_node * 2 + 1 : end) = data.d0; % d0
 % --------------- end ---------------
 
 % run the actual code
 data.max_newton_iter = max_newton_iter; %300;
 data.max_damp_iter = enable_damp_newton * max_damp_step;
 data.u_old = data.u0;
-% data.u_star = cell(max_outer_iter, 1);
-% data.i = cell(max_outer_iter, 1);
-% data.J = cell(max_outer_iter, 1);
-% data.s_hist = cell(max_outer_iter, 1);
-% data.d_hist = cell(max_outer_iter, 1);
-% data.u_res = cell(max_outer_iter, 1);
-% data.objective = cell(max_outer_iter, 1);
-% 
+data.norm_du = cell(max_outer_step, 1);
+data.norm_dd = cell(max_outer_step, 1); 
+
 for outer_iter = 1 : max_outer_step
   data.outer_iter = outer_iter;
+  data.d0 = data.u_old(2 * num_node+1:end); 
   %%%
   data = my_newton(data, objective_fun);
   %%%
-  d0 = data.u_old(2*num_node+1:end);
-  d_hist = data.d_hist{outer_iter};
-  tmp = (d_hist(:, end)-d0)./d0;
-  if has_constraint && max(abs(tmp)) < 0.01 && data.gamma_d <= 1e-5 
+  d_old = data.u_old(2*num_node+1:end);
+  d_new = data.u_new(2*num_node+1:end);
+  tmp = max(abs((d_new - d_old)./d_old));
+  if has_constraint && tmp < 0.01 && data.gamma_d <= 1e-5 
     break;
   end
   switch update_option
       case 1 % Update d only
           % In the outer iteration, only update gamma and d, but not u and v. 
-          data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
+          data.u_old(2*num_node+1:end) = data.u_new(2*num_node+1:end);
       case 2 % Update u, v and d
           % Updating u and v may converge slower, but with stable convergence.
-          % data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
-          data.u_old = data.u_new{outer_iter}; 
+          % data.u_old(2*num_node+1:end) = data.u_new(2*num_node+1:end);
+          data.u_old = data.u_new; 
   end
   if data.gamma_d>1e-5
       data.gamma_d = max(data.gamma_d*0.01, 1.0e-5);
@@ -190,7 +186,7 @@ dd_square = (cat(1, norm_dd{:})).^2;
 plot_newton_step(du_square, 'Norm(du)^2');
 plot_newton_step(dd_square, 'Norm(dd)^2');
 
-u_star = data.u_new{end}; 
+u_star = data.u_new; 
 if size(name, 2)>1
     u_res = u_star(1:num_node);
     v_res = u_star(num_node+1 : 2*num_node);

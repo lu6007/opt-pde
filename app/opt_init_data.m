@@ -70,7 +70,7 @@ switch name
         data.max_newton_iter = 10;
         data.init_u_tag = 1; % u0 = u1 or u2
         data.init_d = 10;
-        data.gamma = 1.0e-5;
+        data.gamma = 1.0; % 1.0e-5;
         data.enable_normalize = 1;
         data.enable_damp_newton = 1;
         data.max_damp_step = 10;
