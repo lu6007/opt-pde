@@ -27,7 +27,6 @@ function data = my_newton(data, objective_fun)
 
   objective = zeros(max_newton_iter+1, 1);
   norm_jacobian  = zeros(max_newton_iter+1, 1);
-  s_hist = zeros(max_newton_iter+1, 1);
   norm_du = zeros(max_newton_iter+1, 1);
   d_hist = zeros(num_para, max_newton_iter+1);
   norm_dd = zeros(max_newton_iter+1, 1);
@@ -141,7 +140,6 @@ function data = my_newton(data, objective_fun)
     norm_jacobian(i+1) = norm(jacobian_new);
 
     d_hist(:, i+1) = dd;
-    s_hist(i+1) = ss;
     norm_du(i+1) = norm(uu - data.u2);
     norm_dd(i+1) = norm(dd - d_hist(:,i))/norm(data.d0);
 
@@ -149,7 +147,7 @@ function data = my_newton(data, objective_fun)
   % Residual, Diffusion Coefficients
 
     fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
-        objective(i), norm_jacobian(i), s_hist(i), norm_du(i));
+        objective(i), norm_jacobian(i), ss, norm_du(i));
     if has_constraint % print diff_coef
         fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
         % convergence test
@@ -163,7 +161,7 @@ function data = my_newton(data, objective_fun)
 
     if criteria % True: (norm_jacobian(i+1) < 1e-06 && max(abs(tmp)) < 0.01)
         fprintf('%8.3e \t %10.3e \t %5.2e \t %5.2e \t ', ...
-            objective(i+1), norm_jacobian(i+1), s_hist(i+1), norm_du(i+1));
+            objective(i+1), norm_jacobian(i+1), 0, norm_du(i+1));
         if has_constraint % print diff_coef
             fprintf('%s \n', num2str(u_old(2*num_node+1:2*num_node+print_para)'));
         else
@@ -189,7 +187,6 @@ function data = my_newton(data, objective_fun)
   end
   data.i{outer_iter} = i;
   data.norm_jacobian{outer_iter} = norm_jacobian;
-  data.s_hist{outer_iter} = s_hist(1:num_newton_iter);
   data.d_hist{outer_iter} = d_hist(:, 1:num_newton_iter);
   data.norm_du{outer_iter} = norm_du(1:num_newton_iter);
   data.norm_dd{outer_iter} = norm_dd(1:num_newton_iter)*sqrt(num_node*gamma_d);
