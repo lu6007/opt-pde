@@ -143,7 +143,6 @@ data.u0(num_node * 2 + 1 : end) = d0; % d0
 data.max_newton_iter = max_newton_iter; %300;
 data.max_damp_iter = enable_damp_newton * max_damp_step;
 data.u_old = data.u0;
-% data.u_star = cell(max_outer_iter, 1);
 % data.i = cell(max_outer_iter, 1);
 % data.norm_jacobian = cell(max_outer_iter, 1);
 % data.u_res = cell(max_outer_iter, 1);
@@ -163,11 +162,11 @@ for outer_iter = 1 : max_outer_step
   switch update_option
       case 1 % Update d only
           % In the outer iteration, only update gamma and d, but not u and v. 
-          data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
+          data.u_old(2*num_node+1:end) = data.u_new(2*num_node+1:end);
       case 2 % Update u, v and d
           % Updating u and v may converge slower, but with stable convergence.
-          % data.u_old(2*num_node+1:end) = data.u_new{outer_iter}(2*num_node+1:end);
-          data.u_old = data.u_new{outer_iter}; 
+          % data.u_old(2*num_node+1:end) = data.u_new(2*num_node+1:end);
+          data.u_old = data.u_new; 
   end
   if data.gamma_d>1e-5
       data.gamma_d = max(data.gamma_d*0.01, 1.0e-5);
@@ -188,7 +187,7 @@ dd_square = (cat(1, norm_dd{:})).^2;
 plot_newton_step(du_square, 'Norm(du)^2');
 plot_newton_step(dd_square, 'Norm(dd)^2');
 
-u_star = data.u_new{end}; 
+u_star = data.u_new; 
 if size(name, 2)>1
     u_res = u_star(1:num_node);
     v_res = u_star(num_node+1 : 2*num_node);

@@ -129,7 +129,7 @@ function data = my_newton(data, objective_fun)
         d_new = u_new(2*num_node+1: end); 
         print_para = min(data.num_para, 5); % print the first 5 parameters
     else
-        % uu = 0;
+        uu = u_new;
         d_new = 0; 
     end
     % calculate objective function and norm of Jacobian
@@ -177,13 +177,12 @@ function data = my_newton(data, objective_fun)
   outer_iter = data.outer_iter;
   num_newton_iter = i+1;
   if has_constraint
-    data.u_new{outer_iter} = u_new;
+    data.u_new = u_new;
   else
       vv = zeros(num_node, 1);
-      data.u_new{outer_iter} = [u_new; vv; 0];
+      data.u_new = [u_new; vv; 0];
       clear vv; 
   end
-  data.i{outer_iter} = i;
   data.norm_jacobian{outer_iter} = norm_jacobian;
   data.d_old = d_old; data.d_new = d_new; 
   data.norm_du{outer_iter} = norm_du(1:num_newton_iter);
