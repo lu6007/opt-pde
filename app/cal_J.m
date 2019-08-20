@@ -1,7 +1,7 @@
 function [Ju, Jv, Jd] = cal_J(data, d, u, v)
     cell_name = data.cell_name;
     num_para = data.num_para;
-    d0 = data.d0;
+    d0 = data.d_old;
     u2 = data.u2;
     u1 = data.u1;
     gamma = data.gamma_d;

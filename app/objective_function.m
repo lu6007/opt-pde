@@ -90,23 +90,20 @@ return
 
 function [data] = f7(data, func_flag)
   x = data.x;
-  num_node = data.num_node;
-  u = x(1 : num_node);
-  v = x(num_node+1 : 2*num_node);
-  d = x(2*num_node+1:end);
-
+  u = x.u; v = x.v; d = x.d; 
+  
   if func_flag == 0 % objective
     gamma_d = data.gamma_d; 
     norm_u = (u - data.u2)' * data.M * (u - data.u2); 
     AM = data.A; % data.A = A+M/data.dt
     constraint = u' * AM * v + data.u1' * data.M * v / data.dt; 
     norm_d = 0;
-    if min(abs(data.d0))<=eps
+    if min(abs(data.d_old))<=eps
         fprintf('\n Function objective_function(): some abs(d0)<=eps, do not normalize. \n');
     end
     for iter = 1 : data.num_para
       tmp_M_sub = data.M_sub{iter};
-      dd0 = data.d0(iter);
+      dd0 = data.d_old(iter);
       ddd = d(iter)-dd0;
       if abs(dd0) > eps
         norm_d = norm_d + gamma_d * (ddd^2) * sum(tmp_M_sub(:)) /(dd0^2);
@@ -190,7 +187,7 @@ return
 % 
 %     tmp_obj = 0;
 %     if strcmp(data.cell_name, 'layered_diffusion_general_h1')
-%       delta_d = (d-data.d0) ./ data.d0;
+%       delta_d = (d-data.d_old) ./ data.d_old;
 %       [A_tmp, M_tmp] = assemble_matrix(p', tri');
 % %       tmp_obj = data.gamma_d * delta_d' * data.M * delta_d...
 % %          + data.gamma_d * delta_d' * (data.A - data.M / data.dt) * delta_d;
@@ -199,7 +196,7 @@ return
 %     else
 %       for iter = 1 : data.num_para
 %         tmp_M_sub = data.M_sub{iter};
-%         d0 = data.d0(iter);
+%         d0 = data.d_old(iter);
 %         delta_d = d(iter)-d0;
 %         tmp_obj = tmp_obj + data.gamma_d * (delta_d^2) * sum(tmp_M_sub(:)) /(d0^2);
 %         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

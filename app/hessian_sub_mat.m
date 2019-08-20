@@ -2,7 +2,7 @@ function data = hessian_sub_mat(data, u, v)
 
     cell_name = data.cell_name;
     num_para = data.num_para;
-    d0 = data.d0;
+    d0 = data.d_old;
     A_sub = data.A_sub;
     M_sub = data.M_sub;
     gamma = data.gamma_d; 

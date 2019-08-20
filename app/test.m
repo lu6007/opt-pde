@@ -18,15 +18,11 @@
 % >> name = 1;
 % >> test(name);
 
-% Kathy 4/4/2019
+% Kathy 8/19/2019
 % Questions:
 % (1) Make >> test('general') work
 % (2) **** test on H3K9 biosensor results.
-% (3) split uu, vv, dd in my_newton(). 
-% (4) Split the update matrix part and update diffusion coefficient part
-% in cal_sub_mat(), Cal_J, and hessian_sub_mat().
-% (5) Making the choice of solver an option
-% (6) let v0= -A^(-1)(u0-u2)
+% (3) Making the choice of solver an option
 %
 % Results: 
 % (1) Switched from the direct solver to the decomposition solver, it was 100x
@@ -65,7 +61,7 @@
 % (25) Add the codes to visualize the diffusion map. 
 % (26) General unconstrained optimization works now
 % (27) Checked mtool/spmatrixplot(), it seems not needed
-
+% (28) split uu, vv, dd in my_newton(). 
 
 % Copyright: Shaoying Lu and Yiwen Shi, Email: shaoying.lu@gmail.com
 function test(name, varargin)
@@ -128,46 +124,44 @@ num_para = data.num_para;
 % set the initial guess vector (u0, [v0 ,] d0)
 d0 = init_d *ones(num_para, 1);
 data.min_d = min_d*ones(num_para, 1);
-u_len = num_node * 2 + num_para;
+u_len = num_node;
 
 data.u0 = zeros(u_len, 1);
 if init_u_tag == 1
-  data.u0(1 : num_node) = data.u1;
+  data.u0 = data.u1;
 elseif init_u_tag == 2
-  data.u0(1 : num_node) = data.u2;
+  data.u0 = data.u2;
 end
-data.u0(num_node * 2 + 1 : end) = d0; % d0
+data.v0 = zeros(u_len, 1); 
+data.d0 = d0; % d0
 % --------------- end ---------------
 
 % run the actual code
 data.max_newton_iter = max_newton_iter; %300;
 data.max_damp_iter = enable_damp_newton * max_damp_step;
-data.u_old = data.u0;
-% data.i = cell(max_outer_iter, 1);
-% data.norm_jacobian = cell(max_outer_iter, 1);
-% data.u_res = cell(max_outer_iter, 1);
-% data.objective = cell(max_outer_iter, 1);
-% 
+data.u_old = data.u0; data.v_old = data.v0; data.d_old = data.d0; 
 for outer_iter = 1 : max_outer_step
   data.outer_iter = outer_iter;
   %%%
   data = my_newton(data, objective_fun);
   %%%
-  d0 = data.u_old(2*num_node+1:end);
-  d_new = data.d_new; 
-  tmp = (d_new-d0)./d0;
-  if has_constraint && max(abs(tmp)) < 0.01 && data.gamma_d <= 1e-5 
-    break;
+  if ~has_constraint
+      continue;
   end
-  switch update_option
-      case 1 % Update d only
-          % In the outer iteration, only update gamma and d, but not u and v. 
-          data.u_old(2*num_node+1:end) = data.u_new(2*num_node+1:end);
-      case 2 % Update u, v and d
-          % Updating u and v may converge slower, but with stable convergence.
-          % data.u_old(2*num_node+1:end) = data.u_new(2*num_node+1:end);
-          data.u_old = data.u_new; 
+  
+  % has constraint
+  tmp = (data.d_new-data.d_old)./data.d_old;
+  data.d_old = data.d_new; 
+  if update_option == 2 % Update u and v
+      % Updating u and v may converge slower, but with stable convergence.
+      data.u_old = data.u_new;
+      data.v_old = data.v_new; 
   end
+  if max(abs(tmp)) < 0.01 && data.gamma_d <= 1e-5 
+      break;
+  end
+  
+  %
   if data.gamma_d>1e-5
       data.gamma_d = max(data.gamma_d*0.01, 1.0e-5);
       if enable_normalize
@@ -187,66 +181,31 @@ dd_square = (cat(1, norm_dd{:})).^2;
 plot_newton_step(du_square, 'Norm(du)^2');
 plot_newton_step(dd_square, 'Norm(dd)^2');
 
-u_star = data.u_new; 
-if size(name, 2)>1
-    u_res = u_star(1:num_node);
-    v_res = u_star(num_node+1 : 2*num_node);
-    d_res = u_star(2*num_node+1:end); 
-end
+if isfield(data, 'draw_surface') && data.draw_surface
+    dfun = diffusion_function(); % require diffusion_analysis
+    surf.p = data.p; surf.tri = data.tri; surf.u = data.u_new';
+    surf.node = data.p; surf.edge = data.edge;
+    figure; 
+    dfun.draw_surface_with_mesh(surf, surf); 
+    caxis([0 6.5]); title('u\_star'); 
 
-%   if size(name, 2) == 1
-%       index = fun_idx; 
-%       uu = data.u_res{1} + data.u2;
-%       u_star = uu(end);
-%       % 
-%       u_min = min([uu; data.u0]);
-%       u_max = max([uu; data.u0]);
-%       dist = max(u_max-u_star, u_star-u_min);
-%       step = 2*dist/20;
-%       uuu = (u_star-dist:step: u_star+dist+step)';
-%       data.x = uuu; 
-%       data = f{index}(data, 0);
-%       my_figure('font_size', 24, 'line_width', 3); hold on;
-%       plot(data.x, data.y, 'k--', 'LineWidth', 1);
-%       xlabel('u1'); ylabel('Objective');
-%       
-%       % 
-%       data.x = [data.u0; uu];
-%       data = f{index}(data, 0);
-%       plot(data.x, data.y, 'b', 'LineWidth', 2);
-%       plot(data.x(1), data.y(1), 'bo');
-%       plot(data.x(end), data.y(end), 'r*');  
-%   end
+    surf.u = data.v_new';
+    figure; dfun.draw_surface_with_mesh(surf, surf); 
+    title('v\_star');
 
-  if isfield(data, 'plot_surf') && data.plot_surf
-    % d_res = d_res / data.xy_scale;  
-    point = data.p'; triangle = data.tri'; edge = data.edge';
-    figure; pdesurf(point', triangle', u_res);
-    hold on; pdemesh(point', edge', triangle')
-    colormap jet
-    colorbar; view(2);
-    title('u\_res');
-
-    figure; pdesurf(point', triangle', v_res);
-    hold on; pdemesh(point', edge', triangle')
-    colormap jet
-    colorbar; view(2);
-    title('v\_res');
-
-    figure;
-    if max(size(d_res)) ~= size(triangle, 1) && max(size(d_res)) ~= data.num_node
+    d_new = data.d_new * data.xy_scale; 
+    triangle = data.tri'; 
+    if size(d_new, 1) ~= size(triangle, 1) && size(d_new, 1) ~= data.num_node
       d_vec = zeros(1, size(triangle, 1)); 
       for i = 1 : size(triangle, 1)
-        d_vec(i) = d_res(triangle(i, 4));
+        d_vec(i) = d_new(triangle(i, 4));
       end
-      pdesurf(point', triangle', d_vec);
+      surf.u = d_vec';
     else
-      pdesurf(point', triangle', d_res');
+      surf.u = d_new;
     end
-    hold on; pdemesh(point', edge', triangle')
-    colormap jet; 
-    colorbar; view(2);
-    title('d');
-  end
-
+    figure; dfun.draw_surface_with_mesh(surf, surf); 
+    caxis([0 250]); title('d\_star');
 end
+
+return
